@@ -30,11 +30,7 @@ export default function LoginPage() {
       <div className="w-full max-w-[400px] bg-bg-surface rounded-radius-lg border border-border-default p-8 animate-fade-in">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center mx-auto mb-4">
-            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          </div>
+          <img src="/logo.svg" alt="ProvEx" className="w-16 h-16 mx-auto mb-4" />
           <h1 className="text-[24px] font-display font-bold text-text-primary">ProvEx</h1>
           <p className="text-text-secondary text-sm mt-1">Masuk ke akun Anda</p>
         </div>

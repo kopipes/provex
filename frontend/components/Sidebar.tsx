@@ -125,8 +125,8 @@ export function Sidebar() {
                 className={clsx(
                   'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                   isActive
-                    ? 'bg-accent/20 text-accent'
-                    : 'text-inverse/70 hover:text-inverse hover:bg-accent/10'
+                    ? 'bg-[#efe5dc] text-black'
+                    : 'text-inverse/70 hover:bg-inverse/10'
                 )}
               >
                 <Icon className="w-[18px] h-[18px]" />

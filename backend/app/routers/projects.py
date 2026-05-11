@@ -16,7 +16,7 @@ router = APIRouter(prefix="/projects", tags=["Projects"])
 def project_to_response(project: Project, db: Session) -> dict:
     """Convert Project model to response dict with computed fields"""
     member_count = db.query(ProjectMember).filter(ProjectMember.project_id == project.id).count()
-    total_amount = db.query(func.coalesce(func.sum(Claim.amount), 0)).filter(
+    total_amount = db.query(func.coalesce(func.sum(Claim.amount), 0).filter(
         Claim.project_id == project.id
     ).scalar()
     
@@ -136,10 +136,11 @@ def update_project(
         project.start_date = project_data.start_date
     if project_data.end_date is not None:
         project.end_date = project_data.end_date
-    if project_data.budget_limit is not None:
+    # Handle budget_limit - check if attribute exists, even if None
+    if hasattr(project_data, 'budget_limit'):
         project.budget_limit = project_data.budget_limit
     if project_data.status is not None:
-        project.status = project_data.status.value
+        project.status = project_data.status.value if hasattr(project_data.status, 'value') else project_data.status
     
     db.commit()
     db.refresh(project)

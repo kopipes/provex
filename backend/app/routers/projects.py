@@ -16,7 +16,7 @@ router = APIRouter(prefix="/projects", tags=["Projects"])
 def project_to_response(project: Project, db: Session) -> dict:
     """Convert Project model to response dict with computed fields"""
     member_count = db.query(ProjectMember).filter(ProjectMember.project_id == project.id).count()
-    total_amount = db.query(func.coalesce(func.sum(Claim.amount), 0).filter(
+    total_amount = db.query(func.coalesce(func.sum(Claim.amount), 0)).filter(
         Claim.project_id == project.id
     ).scalar()
     

@@ -127,7 +127,7 @@ export function Sidebar() {
                   'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                   isActive
                     ? 'bg-[#efe5dc] text-black'
-                    : 'text-inverse/70 hover:bg-inverse/10'
+                    : 'text-inverse/70 hover:bg-[#efe5dc]'
                 )}
               >
                 <Icon className="w-[18px] h-[18px]" />

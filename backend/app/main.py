@@ -7,8 +7,8 @@ from app.routers import auth, users, projects, claims, analytics, ai_config, upl
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="ReimburseEasy API",
-    description="Backend API for ReimburseEasy - Project-based Reimbursement Management System",
+    title="ProvEx API",
+    description="Backend API for ProvEx - Project-based Reimbursement Management System",
     version="1.0.0"
 )
 
@@ -42,7 +42,7 @@ app.include_router(departments.router)
 
 @app.get("/")
 def root():
-    return {"message": "ReimburseEasy API", "version": "1.0.0"}
+    return {"message": "ProvEx API", "version": "1.0.0"}
 
 
 @app.get("/api/health")

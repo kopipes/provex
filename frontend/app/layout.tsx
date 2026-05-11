@@ -4,7 +4,7 @@ import { NotificationProvider } from '@/components/Toast';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'ReimburseEasy',
+  title: 'ProvEx',
   description: 'Aplikasi Manajemen Reimbursement Berbasis Project',
 };
 

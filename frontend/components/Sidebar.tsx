@@ -70,7 +70,7 @@ export function Sidebar() {
       {isMobile && (
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="fixed top-4 left-4 z-50 p-2 bg-bg-inverse text-white rounded-lg shadow-lg"
+          className="fixed top-4 left-4 z-50 p-2 bg-bg-inverse text-bg-inverse rounded-lg shadow-lg"
           aria-label="Toggle menu"
         >
           {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -88,18 +88,18 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={clsx(
-          'w-[240px] min-h-screen bg-bg-inverse text-white flex flex-col fixed left-0 top-0 z-40 transition-transform duration-300 ease-in-out',
+          'w-[240px] min-h-screen bg-bg-inverse text-bg-inverse flex flex-col fixed left-0 top-0 z-40 transition-transform duration-300 ease-in-out',
           isMobile ? 'pt-16' : '',
           isMobile && !isOpen ? '-translate-x-full' : 'translate-x-0'
         )}
       >
         {/* Header */}
-        <div className="h-14 px-4 flex items-center border-b border-white/10">
+        <div className="h-14 px-4 flex items-center border-b border-border-default">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-white">
               <Receipt className="w-4 h-4" />
             </div>
-            <span className="font-display font-semibold text-lg">ReimburseEasy</span>
+            <span className="font-display font-semibold text-lg text-bg-inverse">ReimburseEasy</span>
           </Link>
         </div>
 
@@ -109,7 +109,7 @@ export function Sidebar() {
             if ('separator' in item && item.separator) {
               return (
                 <div key={`sep-${index}`} className="my-4">
-                  <div className="border-t border-white/10" />
+                  <div className="border-t border-border-default" />
                 </div>
               );
             }
@@ -126,7 +126,7 @@ export function Sidebar() {
                   'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                   isActive
                     ? 'bg-accent/20 text-accent'
-                    : 'text-white/70 hover:text-white hover:bg-white/5'
+                    : 'text-bg-inverse/70 hover:text-bg-inverse hover:bg-accent/10'
                 )}
               >
                 <Icon className="w-[18px] h-[18px]" />
@@ -137,18 +137,18 @@ export function Sidebar() {
         </nav>
 
         {/* User section */}
-        <div className="p-3 border-t border-white/10">
+        <div className="p-3 border-t border-border-default">
           <div className="flex items-center gap-3 px-3 py-2">
-            <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center text-sm font-medium">
+            <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center text-sm font-medium text-white">
               {user.name.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user.name}</p>
-              <p className="text-xs text-white/50 capitalize">{user.role}</p>
+              <p className="text-sm font-medium truncate text-bg-inverse">{user.name}</p>
+              <p className="text-xs text-bg-inverse/50 capitalize">{user.role}</p>
             </div>
             <button
               onClick={handleLogout}
-              className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-accent/10 transition-colors text-bg-inverse"
               aria-label="Logout"
             >
               <LogOut className="w-4 h-4" />

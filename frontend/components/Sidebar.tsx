@@ -100,7 +100,7 @@ export function Sidebar() {
             <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-white">
               <Receipt className="w-4 h-4" />
             </div>
-            <span className="font-display font-semibold text-lg text-inverse">ReimburseEasy</span>
+            <span className="font-display font-semibold text-lg text-inverse">ProvEx</span>
           </Link>
         </div>
 

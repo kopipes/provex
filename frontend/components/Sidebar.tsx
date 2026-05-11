@@ -70,7 +70,7 @@ export function Sidebar() {
       {isMobile && (
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="fixed top-4 left-4 z-50 p-2 bg-bg-inverse text-bg-inverse rounded-lg shadow-lg"
+          className="fixed top-4 left-4 z-50 p-2 bg-inverse text-inverse rounded-lg shadow-lg"
           aria-label="Toggle menu"
         >
           {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -88,7 +88,7 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={clsx(
-          'w-[240px] min-h-screen bg-bg-inverse text-bg-inverse flex flex-col fixed left-0 top-0 z-40 transition-transform duration-300 ease-in-out',
+          'w-[240px] min-h-screen bg-bg-inverse text-inverse flex flex-col fixed left-0 top-0 z-40 transition-transform duration-300 ease-in-out',
           isMobile ? 'pt-16' : '',
           isMobile && !isOpen ? '-translate-x-full' : 'translate-x-0'
         )}
@@ -99,7 +99,7 @@ export function Sidebar() {
             <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-white">
               <Receipt className="w-4 h-4" />
             </div>
-            <span className="font-display font-semibold text-lg text-bg-inverse">ReimburseEasy</span>
+            <span className="font-display font-semibold text-lg text-inverse">ReimburseEasy</span>
           </Link>
         </div>
 
@@ -126,7 +126,7 @@ export function Sidebar() {
                   'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                   isActive
                     ? 'bg-accent/20 text-accent'
-                    : 'text-bg-inverse/70 hover:text-bg-inverse hover:bg-accent/10'
+                    : 'text-inverse/70 hover:text-inverse hover:bg-accent/10'
                 )}
               >
                 <Icon className="w-[18px] h-[18px]" />
@@ -143,12 +143,12 @@ export function Sidebar() {
               {user.name.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate text-bg-inverse">{user.name}</p>
-              <p className="text-xs text-bg-inverse/50 capitalize">{user.role}</p>
+              <p className="text-sm font-medium truncate text-inverse">{user.name}</p>
+              <p className="text-xs text-inverse/50 capitalize">{user.role}</p>
             </div>
             <button
               onClick={handleLogout}
-              className="p-1.5 rounded-lg hover:bg-accent/10 transition-colors text-bg-inverse"
+              className="p-1.5 rounded-lg hover:bg-accent/10 transition-colors text-inverse"
               aria-label="Logout"
             >
               <LogOut className="w-4 h-4" />

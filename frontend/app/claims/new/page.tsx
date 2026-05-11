@@ -135,11 +135,11 @@ export default function NewClaimPage() {
           if (data.merchant_name) {
             setFormData(prev => ({ ...prev, merchant_name: data.merchant_name }));
           }
-          if (data.date) {
-            setFormData(prev => ({ ...prev, transaction_date: data.date }));
+          if (data.transaction_date) {
+            setFormData(prev => ({ ...prev, transaction_date: data.transaction_date }));
           }
-          if (data.amount) {
-            setFormData(prev => ({ ...prev, amount: data.amount.toString() }));
+          if (data.total_amount) {
+            setFormData(prev => ({ ...prev, amount: data.total_amount.toString() }));
           }
           if (data.category) {
             // Try to match category
@@ -152,10 +152,10 @@ export default function NewClaimPage() {
               setFormData(prev => ({ ...prev, category: matchedCategory }));
             }
           }
-          if (data.items) {
+          if (data.description) {
             setFormData(prev => ({ 
               ...prev, 
-              description: data.items 
+              description: data.description 
             }));
           }
           if (data.receipt_number) {

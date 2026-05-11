@@ -5,7 +5,6 @@ import { useAuth } from '@/lib/auth';
 import { Sidebar } from '@/components/Sidebar';
 import { StatusBadge } from '@/components/Badge';
 import { Button } from '@/components/Button';
-import { Input } from '@/components/Input';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { projectsAPI, usersAPI } from '@/lib/api';
 import type { Project, User } from '@/lib/types';
@@ -109,16 +108,32 @@ export default function AdminProjectsPage() {
     }
   };
 
+  const handleAddNew = () => {
+    setEditingProject(null);
+    setFormData({
+      name: '',
+      description: '',
+      start_date: '',
+      end_date: '',
+      budget_limit: '',
+      no_limit: false,
+    });
+    setErrors({});
+    setShowForm(true);
+  };
+
   const handleEdit = (project: Project) => {
     setEditingProject(project);
+    const budgetValue = project.budget_limit != null ? String(project.budget_limit) : '';
     setFormData({
       name: project.name,
       description: project.description || '',
       start_date: project.start_date,
       end_date: project.end_date || '',
-      budget_limit: project.budget_limit?.toString() || '',
-      no_limit: project.budget_limit === null,
+      budget_limit: budgetValue,
+      no_limit: project.budget_limit == null,
     });
+    setErrors({});
     setShowForm(true);
   };
 
@@ -153,7 +168,7 @@ export default function AdminProjectsPage() {
                 Kelola semua project
               </p>
             </div>
-            <Button onClick={() => setShowForm(true)} className="w-full sm:w-auto">
+            <Button onClick={handleAddNew} className="w-full sm:w-auto">
               Project Baru
             </Button>
           </div>
@@ -206,7 +221,7 @@ export default function AdminProjectsPage() {
                     <div>
                       <span className="text-text-muted">Anggaran</span>
                       <p className="font-medium text-text-primary">
-                        {project.budget_limit === null ? 'Tanpa Limit' : project.budget_limit ? formatCurrency(project.budget_limit) : '-'}
+                        {project.budget_limit == null ? 'Tanpa Limit' : project.budget_limit ? formatCurrency(project.budget_limit) : '-'}
                       </p>
                     </div>
                     <div>
@@ -237,37 +252,39 @@ export default function AdminProjectsPage() {
       </main>
 
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[500px]">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[500px] max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-semibold text-text-primary mb-4">
               {editingProject ? 'Edit Project' : 'Project Baru'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">Nama Project</label>
-                <Input
+                <label className="block text-sm font-medium text-text-primary mb-2">Nama Project *</label>
+                <input
+                  type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  error={errors.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className={`w-full px-4 py-2.5 bg-bg-surface border rounded-radius-md ${errors.name ? 'border-danger' : 'border-border-default'}`}
                 />
+                {errors.name && <p className="text-danger text-sm mt-1">{errors.name}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-text-primary mb-2">Deskripsi</label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
                   className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md resize-none"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-text-primary mb-2">Tanggal Mulai</label>
+                  <label className="block text-sm font-medium text-text-primary mb-2">Tanggal Mulai *</label>
                   <input
                     type="date"
                     value={formData.start_date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
-                    className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md"
+                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    className={`w-full px-4 py-2.5 bg-bg-surface border rounded-radius-md ${errors.start_date ? 'border-danger' : 'border-border-default'}`}
                   />
                   {errors.start_date && <p className="text-danger text-sm mt-1">{errors.start_date}</p>}
                 </div>
@@ -276,7 +293,7 @@ export default function AdminProjectsPage() {
                   <input
                     type="date"
                     value={formData.end_date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
+                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
                     className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md"
                   />
                 </div>
@@ -288,17 +305,18 @@ export default function AdminProjectsPage() {
                     type="checkbox"
                     id="no_limit"
                     checked={formData.no_limit}
-                    onChange={(e) => setFormData(prev => ({ ...prev, no_limit: e.target.checked, budget_limit: e.target.checked ? '' : prev.budget_limit }))}
-                    className="w-4 h-4 rounded border-border-default text-accent focus:ring-accent"
+                    onChange={(e) => setFormData({ ...formData, no_limit: e.target.checked, budget_limit: e.target.checked ? '' : formData.budget_limit })}
+                    className="w-4 h-4 rounded border-border-default"
                   />
                   <label htmlFor="no_limit" className="text-sm text-text-secondary">Tidak ada limit anggaran</label>
                 </div>
-                <Input
+                <input
                   type="number"
                   value={formData.budget_limit}
-                  onChange={(e) => setFormData(prev => ({ ...prev, budget_limit: e.target.value, no_limit: false }))}
+                  onChange={(e) => setFormData({ ...formData, budget_limit: e.target.value, no_limit: false })}
                   disabled={formData.no_limit}
                   placeholder={formData.no_limit ? 'Tidak ada limit' : 'Masukkan budget limit'}
+                  className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md disabled:opacity-50"
                 />
               </div>
               <div className="flex justify-end gap-4 pt-4">

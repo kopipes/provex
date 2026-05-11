@@ -6,8 +6,9 @@ import { useAuth } from '@/lib/auth';
 import { Sidebar } from '@/components/Sidebar';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
-import { uploadAPI, projectsAPI, claimsAPI } from '@/lib/api';
+import { uploadAPI, projectsAPI, claimsAPI, aiConfigAPI } from '@/lib/api';
 import type { Project, ClaimCategory } from '@/lib/types';
+import { Camera, Upload, Loader2 } from 'lucide-react';
 
 const CATEGORIES: ClaimCategory[] = ['Makanan', 'Transport', 'Akomodasi', 'Lain-lain'];
 
@@ -15,11 +16,20 @@ export default function NewClaimPage() {
   const router = useRouter();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [extractingData, setExtractingData] = useState(false);
   
+  // Step 1: Show upload screen first
+  const [hasReceipt, setHasReceipt] = useState(false);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [uploadedPath, setUploadedPath] = useState<string | null>(null);
+  
+  // Step 2: Form data
   const [formData, setFormData] = useState({
     project_id: '',
     merchant_name: '',
@@ -29,9 +39,6 @@ export default function NewClaimPage() {
     description: '',
     receipt_number: '',
   });
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
-  const [uploadedPath, setUploadedPath] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState('');
 
@@ -97,23 +104,248 @@ export default function NewClaimPage() {
     }
   };
 
+  const processFile = async (file: File) => {
+    setReceiptFile(file);
+    
+    // Show preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setReceiptPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    
+    // Upload file
+    setUploadingFile(true);
+    setExtractingData(true);
+    try {
+      // Upload first
+      const uploadResponse = await uploadAPI.uploadReceipt(file);
+      setUploadedPath(uploadResponse.data.path);
+      
+      // Convert to base64 for OCR
+      const base64 = await fileToBase64(file);
+      
+      // Extract data using AI
+      try {
+        const extractResponse = await aiConfigAPI.extract(base64);
+        if (extractResponse.data.success && extractResponse.data.data) {
+          const data = extractResponse.data.data;
+          
+          // Auto-fill form with extracted data
+          if (data.merchant_name) {
+            setFormData(prev => ({ ...prev, merchant_name: data.merchant_name }));
+          }
+          if (data.date) {
+            setFormData(prev => ({ ...prev, transaction_date: data.date }));
+          }
+          if (data.amount) {
+            setFormData(prev => ({ ...prev, amount: data.amount.toString() }));
+          }
+          if (data.category) {
+            // Try to match category
+            const matchedCategory = CATEGORIES.find(c => 
+              c.toLowerCase() === data.category.toLowerCase() ||
+              c.toLowerCase().includes(data.category.toLowerCase()) ||
+              data.category.toLowerCase().includes(c.toLowerCase())
+            );
+            if (matchedCategory) {
+              setFormData(prev => ({ ...prev, category: matchedCategory }));
+            }
+          }
+          if (data.items) {
+            setFormData(prev => ({ 
+              ...prev, 
+              description: data.items 
+            }));
+          }
+          if (data.receipt_number) {
+            setFormData(prev => ({ ...prev, receipt_number: data.receipt_number }));
+          }
+        }
+      } catch (extractErr) {
+        console.log('AI extraction not available or failed, fill manually');
+      }
+      
+      // Show form
+      setHasReceipt(true);
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert('Gagal upload file');
+      setReceiptFile(null);
+      setReceiptPreview(null);
+    } finally {
+      setUploadingFile(false);
+      setExtractingData(false);
+    }
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        // Remove data URL prefix
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
+
+  const handleSkipReceipt = () => {
+    setHasReceipt(true);
+  };
+
+  const handleRemoveReceipt = () => {
+    setReceiptFile(null);
+    setReceiptPreview(null);
+    setUploadedPath(null);
+    setHasReceipt(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+  };
+
+  // If no receipt uploaded yet, show upload screen
+  if (!hasReceipt) {
+    return (
+      <div className="flex min-h-screen bg-bg-base">
+        <Sidebar />
+        <main className="flex-1 p-4 md:p-8 md:ml-[240px]">
+          <div className="max-w-lg mx-auto">
+            <div className="mb-6 md:mb-8">
+              <h1 className="text-xl md:text-2xl font-display font-bold text-text-primary">
+                Klaim Baru
+              </h1>
+              <p className="text-text-secondary text-sm mt-1">
+                Upload atau foto struk untuk auto-fill data
+              </p>
+            </div>
+
+            <div className="bg-bg-surface border border-border-default rounded-radius-lg p-6">
+              {/* Upload from gallery */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingFile}
+                className="w-full border-2 border-dashed border-border-default rounded-radius-lg p-8 text-center cursor-pointer hover:border-accent/50 transition-colors mb-4 disabled:opacity-50"
+              >
+                {uploadingFile ? (
+                  <div className="text-text-secondary">
+                    <Loader2 className="w-12 h-12 animate-spin mx-auto mb-3 text-accent" />
+                    <p className="font-medium">{extractingData ? 'Mengekstrak data...' : 'Mengupload...'}</p>
+                    <p className="text-sm mt-1">Mohon tunggu...</p>
+                  </div>
+                ) : (
+                  <div className="text-text-secondary">
+                    <div className="w-16 h-16 bg-bg-subtle rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Upload className="w-8 h-8 text-accent" />
+                    </div>
+                    <p className="font-medium text-text-primary">Upload dari Galeri</p>
+                    <p className="text-sm mt-1">Pilih foto struk atau kwitansi</p>
+                    <p className="text-xs text-text-muted mt-2">PNG, JPG, atau JPEG (maks. 5MB)</p>
+                  </div>
+                )}
+              </button>
+
+              {/* Take photo with camera */}
+              <input
+                type="file"
+                ref={cameraInputRef}
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <button
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={uploadingFile}
+                className="w-full border-2 border-dashed border-border-default rounded-radius-lg p-8 text-center cursor-pointer hover:border-accent/50 transition-colors disabled:opacity-50"
+              >
+                <div className="text-text-secondary">
+                  <div className="w-16 h-16 bg-bg-subtle rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Camera className="w-8 h-8 text-accent" />
+                  </div>
+                  <p className="font-medium text-text-primary">Ambil Foto</p>
+                  <p className="text-sm mt-1">Gunakan kamera untuk foto struk</p>
+                </div>
+              </button>
+
+              {/* Skip option */}
+              <div className="mt-6 pt-6 border-t border-border-default text-center">
+                <button
+                  onClick={handleSkipReceipt}
+                  className="text-sm text-text-secondary hover:text-accent transition-colors"
+                >
+                  Lewati dan isi manual →
+                </button>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Show form after receipt uploaded or skipped
   return (
     <div className="flex min-h-screen bg-bg-base">
       <Sidebar />
-      <main className="flex-1 p-8 md:ml-[240px]">
+      <main className="flex-1 p-4 md:p-8 md:ml-[240px]">
         <div className="max-w-[700px] mx-auto">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-[24px] font-display font-bold text-text-primary">
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-xl md:text-2xl font-display font-bold text-text-primary">
               Klaim Baru
             </h1>
             <p className="text-text-secondary text-sm mt-1">
-              Ajukan klaim reimbursement Anda
+              {receiptPreview ? 'Data struk telah di-extract. Lengkapi jika perlu.' : 'Ajukan klaim reimbursement Anda'}
             </p>
           </div>
 
+          {/* Receipt Preview (if uploaded) */}
+          {receiptPreview && (
+            <div className="mb-6 bg-bg-surface border border-border-default rounded-radius-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-text-primary">Struk yang diupload</span>
+                <button
+                  onClick={handleRemoveReceipt}
+                  className="text-sm text-danger hover:underline"
+                >
+                  Hapus
+                </button>
+              </div>
+              <div className="flex items-center gap-4">
+                <img 
+                  src={receiptPreview} 
+                  alt="Receipt" 
+                  className="w-20 h-20 object-cover rounded-radius-md"
+                />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-text-primary truncate">{receiptFile?.name}</p>
+                  {uploadedPath && (
+                    <p className="text-xs text-success mt-1">✓ Foto berhasil diupload</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Form */}
-          <form onSubmit={handleSubmit} className="bg-bg-surface border border-border-default rounded-radius-lg p-6 space-y-6">
+          <form onSubmit={handleSubmit} className="bg-bg-surface border border-border-default rounded-radius-lg p-4 md:p-6 space-y-5 md:space-y-6">
             {submitError && (
               <div className="p-4 bg-danger/10 border border-danger/20 rounded-radius-md">
                 <p className="text-danger text-sm">{submitError}</p>
@@ -123,7 +355,7 @@ export default function NewClaimPage() {
             {/* Project Selection */}
             <div>
               <label className="block text-sm font-medium text-text-primary mb-2">
-                Project
+                Project *
               </label>
               <select
                 value={formData.project_id}
@@ -145,7 +377,7 @@ export default function NewClaimPage() {
             {/* Merchant Name */}
             <div>
               <label className="block text-sm font-medium text-text-primary mb-2">
-                Nama Merchant / Toko
+                Nama Merchant / Toko *
               </label>
               <Input
                 placeholder="Contoh: Warung Mang Sule"
@@ -156,10 +388,10 @@ export default function NewClaimPage() {
             </div>
 
             {/* Transaction Date & Amount */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-text-primary mb-2">
-                  Tanggal Transaksi
+                  Tanggal Transaksi *
                 </label>
                 <input
                   type="date"
@@ -173,7 +405,7 @@ export default function NewClaimPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-text-primary mb-2">
-                  Jumlah (Rp)
+                  Jumlah (Rp) *
                 </label>
                 <Input
                   type="number"
@@ -188,15 +420,15 @@ export default function NewClaimPage() {
             {/* Category */}
             <div>
               <label className="block text-sm font-medium text-text-primary mb-2">
-                Kategori
+                Kategori *
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
                 {CATEGORIES.map((cat) => (
                   <button
                     key={cat}
                     type="button"
                     onClick={() => handleChange('category', cat)}
-                    className={`px-4 py-3 rounded-radius-md border text-sm font-medium transition-colors ${
+                    className={`px-3 py-2 md:px-4 md:py-3 rounded-radius-md border text-sm font-medium transition-colors ${
                       formData.category === cat
                         ? 'bg-accent text-white border-accent'
                         : 'bg-bg-surface border-border-default text-text-primary hover:border-accent/50'
@@ -211,13 +443,13 @@ export default function NewClaimPage() {
               )}
             </div>
 
-            {/* Description */}
+            {/* Description / Items */}
             <div>
               <label className="block text-sm font-medium text-text-primary mb-2">
-                Deskripsi (Opsional)
+                Deskripsi / Item (Opsional)
               </label>
               <textarea
-                placeholder="Tambahkan deskripsi jika diperlukan..."
+                placeholder="Daftar item yang dibeli atau deskripsi transaksi..."
                 value={formData.description}
                 onChange={(e) => handleChange('description', e.target.value)}
                 rows={3}
@@ -237,106 +469,17 @@ export default function NewClaimPage() {
               />
             </div>
 
-            {/* Receipt Image Upload */}
-            <div>
-              <label className="block text-sm font-medium text-text-primary mb-2">
-                Foto Struk / Kwitansi (Opsional)
-              </label>
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="image/*"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  
-                  setReceiptFile(file);
-                  const reader = new FileReader();
-                  reader.onloadend = () => {
-                    setReceiptPreview(reader.result as string);
-                  };
-                  reader.readAsDataURL(file);
-                  
-                  // Upload file
-                  setUploadingFile(true);
-                  try {
-                    const response = await uploadAPI.uploadReceipt(file);
-                    setUploadedPath(response.data.path);
-                  } catch (err) {
-                    console.error('Upload failed:', err);
-                    alert('Gagal upload file');
-                    setReceiptFile(null);
-                    setReceiptPreview(null);
-                  } finally {
-                    setUploadingFile(false);
-                  }
-                }}
-                className="hidden"
-              />
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-radius-lg p-6 text-center cursor-pointer transition-colors ${
-                  receiptPreview 
-                    ? 'border-accent bg-accent/5' 
-                    : 'border-border-default hover:border-accent/50'
-                }`}
-              >
-                {uploadingFile ? (
-                  <div className="text-text-secondary">
-                    <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-2" />
-                    <p>Mengupload...</p>
-                  </div>
-                ) : receiptPreview ? (
-                  <div>
-                    <img 
-                      src={receiptPreview} 
-                      alt="Receipt preview" 
-                      className="max-h-40 mx-auto rounded-radius-md mb-2"
-                    />
-                    <p className="text-sm text-text-secondary">
-                      {receiptFile?.name}
-                    </p>
-                    <button 
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setReceiptFile(null);
-                        setReceiptPreview(null);
-                        setUploadedPath(null);
-                        if (fileInputRef.current) fileInputRef.current.value = '';
-                      }}
-                      className="mt-2 text-sm text-danger hover:underline"
-                    >
-                      Hapus
-                    </button>
-                  </div>
-                ) : (
-                  <div className="text-text-secondary">
-                    <div className="w-12 h-12 bg-bg-subtle rounded-full flex items-center justify-center mx-auto mb-3">
-                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <p className="font-medium text-text-primary">Klik untuk upload foto</p>
-                    <p className="text-sm mt-1">PNG, JPG, atau JPEG (maks. 5MB)</p>
-                  </div>
-                )}
-              </div>
-              {uploadedPath && (
-                <p className="text-sm text-success mt-2">✓ Foto berhasil diupload</p>
-              )}
-            </div>
-
             {/* Submit */}
-            <div className="flex justify-end gap-4 pt-4 border-t border-border-default">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-border-default">
               <Button
                 type="button"
                 variant="secondary"
                 onClick={() => router.back()}
+                className="w-full sm:w-auto"
               >
                 Batal
               </Button>
-              <Button type="submit" isLoading={loading}>
+              <Button type="submit" isLoading={loading} className="w-full sm:w-auto">
                 Ajukan Klaim
               </Button>
             </div>

@@ -5,8 +5,9 @@ import { useAuth } from '@/lib/auth';
 import { Sidebar } from '@/components/Sidebar';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
-import { aiConfigAPI, databaseAPI } from '@/lib/api';
-import { Database, Download, Upload, Trash2, Plus, TestTube, Save, AlertTriangle } from 'lucide-react';
+import { aiConfigAPI, databaseAPI, departmentsAPI } from '@/lib/api';
+import { Database, Download, Upload, Trash2, Plus, TestTube, Save, AlertTriangle, Building2, Edit2, X } from 'lucide-react';
+import type { Department } from '@/lib/types';
 
 interface Backup {
   filename: string;
@@ -16,7 +17,7 @@ interface Backup {
 
 export default function SettingsPage() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'ai' | 'database'>('database');
+  const [activeTab, setActiveTab] = useState<'ai' | 'database' | 'departments'>('database');
 
   // AI Config state
   const [aiConfig, setAiConfig] = useState({
@@ -36,12 +37,27 @@ export default function SettingsPage() {
   const [restoring, setRestoring] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
+  // Departments state
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [deptLoading, setDeptLoading] = useState(false);
+  const [editingDept, setEditingDept] = useState<Department | null>(null);
+  const [deptName, setDeptName] = useState('');
+  const [deptDesc, setDeptDesc] = useState('');
+  const [deptSaving, setDeptSaving] = useState(false);
+
   useEffect(() => {
     if (user?.role === 'admin') {
       loadBackups();
       loadAIConfig();
+      loadDepartments();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (activeTab === 'departments') {
+      loadDepartments();
+    }
+  }, [activeTab]);
 
   const loadAIConfig = async () => {
     setAiLoading(true);
@@ -162,6 +178,80 @@ export default function SettingsPage() {
     }
   };
 
+  // Department functions
+  const loadDepartments = async () => {
+    setDeptLoading(true);
+    try {
+      const response = await departmentsAPI.list();
+      setDepartments(response.data);
+    } catch (err) {
+      console.error('Failed to load departments:', err);
+    } finally {
+      setDeptLoading(false);
+    }
+  };
+
+  const handleAddDepartment = async () => {
+    if (!deptName.trim()) {
+      alert('Nama departemen diperlukan');
+      return;
+    }
+    setDeptSaving(true);
+    try {
+      await departmentsAPI.create({ name: deptName.trim(), description: deptDesc.trim() || undefined });
+      resetDeptForm();
+      loadDepartments();
+      alert('Departemen berhasil ditambahkan');
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to create department');
+    } finally {
+      setDeptSaving(false);
+    }
+  };
+
+  const handleEditDepartment = (dept: Department) => {
+    setEditingDept(dept);
+    setDeptName(dept.name);
+    setDeptDesc(dept.description || '');
+  };
+
+  const handleUpdateDepartment = async () => {
+    if (!editingDept || !deptName.trim()) {
+      alert('Nama departemen diperlukan');
+      return;
+    }
+    setDeptSaving(true);
+    try {
+      await departmentsAPI.update(editingDept.id, { name: deptName.trim(), description: deptDesc.trim() || undefined });
+      resetDeptForm();
+      loadDepartments();
+      alert('Departemen berhasil diupdate');
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to update department');
+    } finally {
+      setDeptSaving(false);
+    }
+  };
+
+  const handleDeleteDepartment = async (dept: Department) => {
+    if (!confirm(`Hapus departemen "${dept.name}"?`)) {
+      return;
+    }
+    try {
+      await departmentsAPI.delete(dept.id);
+      loadDepartments();
+      alert('Departemen berhasil dihapus');
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to delete department');
+    }
+  };
+
+  const resetDeptForm = () => {
+    setEditingDept(null);
+    setDeptName('');
+    setDeptDesc('');
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
@@ -204,6 +294,17 @@ export default function SettingsPage() {
             >
               <Database className="w-4 h-4 inline mr-2" />
               Database
+            </button>
+            <button
+              onClick={() => setActiveTab('departments')}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'departments'
+                  ? 'text-accent border-b-2 border-accent'
+                  : 'text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              <Building2 className="w-4 h-4 inline mr-2" />
+              Departemen
             </button>
             <button
               onClick={() => setActiveTab('ai')}
@@ -304,6 +405,101 @@ export default function SettingsPage() {
                     Restore database akan mengganti semua data saat ini. Backup otomatis akan dibuat sebelum restore dilakukan.
                   </p>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Departments Tab */}
+          {activeTab === 'departments' && (
+            <div className="space-y-6">
+              {/* Add/Edit Department Form */}
+              <div className="bg-bg-surface border border-border-default rounded-radius-lg p-6">
+                <h3 className="font-medium text-text-primary mb-4">
+                  {editingDept ? 'Edit Departemen' : 'Tambah Departemen Baru'}
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-text-primary mb-2">
+                      Nama Departemen *
+                    </label>
+                    <Input
+                      value={deptName}
+                      onChange={(e) => setDeptName(e.target.value)}
+                      placeholder="Contoh: Engineering, Marketing, HR"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-text-primary mb-2">
+                      Deskripsi
+                    </label>
+                    <textarea
+                      value={deptDesc}
+                      onChange={(e) => setDeptDesc(e.target.value)}
+                      placeholder="Deskripsi departemen (opsional)"
+                      rows={2}
+                      className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md text-sm resize-none"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={editingDept ? handleUpdateDepartment : handleAddDepartment}
+                      isLoading={deptSaving}
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {editingDept ? 'Simpan Perubahan' : 'Tambah'}
+                    </Button>
+                    {editingDept && (
+                      <Button variant="secondary" onClick={resetDeptForm}>
+                        <X className="w-4 h-4 mr-2" />
+                        Batal
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Department List */}
+              <div className="bg-bg-surface border border-border-default rounded-radius-lg p-6">
+                <h3 className="font-medium text-text-primary mb-4">Daftar Departemen</h3>
+                
+                {deptLoading ? (
+                  <p className="text-text-secondary text-center py-4">Memuat...</p>
+                ) : departments.length === 0 ? (
+                  <p className="text-text-secondary text-center py-4">Belum ada departemen</p>
+                ) : (
+                  <div className="space-y-3">
+                    {departments.map((dept) => (
+                      <div
+                        key={dept.id}
+                        className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 p-4 bg-bg-subtle rounded-radius-md"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-text-primary">{dept.name}</p>
+                          <p className="text-xs text-text-secondary mt-1">
+                            {dept.description || 'Tidak ada deskripsi'}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleEditDepartment(dept)}
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="text-danger"
+                            onClick={() => handleDeleteDepartment(dept)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

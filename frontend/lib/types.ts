@@ -16,6 +16,14 @@ export interface User {
   created_at: string;
 }
 
+export interface Department {
+  id: number;
+  name: string;
+  description?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
 export interface Project {
   id: number;
   name: string;

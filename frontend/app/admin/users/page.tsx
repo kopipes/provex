@@ -7,15 +7,17 @@ import { StatusBadge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { formatDate } from '@/lib/utils';
-import { usersAPI } from '@/lib/api';
-import type { User } from '@/lib/types';
+import { usersAPI, departmentsAPI } from '@/lib/api';
+import type { User, Department } from '@/lib/types';
 import { UserPlus, Search } from 'lucide-react';
 
 export default function AdminUsersPage() {
   const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deptLoading, setDeptLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [actionUser, setActionUser] = useState<User | null>(null);
@@ -36,6 +38,7 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     loadUsers();
+    loadDepartments();
   }, []);
 
   useEffect(() => {
@@ -53,6 +56,18 @@ export default function AdminUsersPage() {
       );
     }
   }, [searchQuery, users]);
+
+  const loadDepartments = async () => {
+    setDeptLoading(true);
+    try {
+      const response = await departmentsAPI.list();
+      setDepartments(response.data);
+    } catch (err) {
+      console.error('Failed to load departments:', err);
+    } finally {
+      setDeptLoading(false);
+    }
+  };
 
   const loadUsers = async () => {
     try {
@@ -330,11 +345,16 @@ export default function AdminUsersPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-text-primary mb-2">Departemen</label>
-                <Input
+                <select
                   value={addDepartment}
                   onChange={(e) => setAddDepartment(e.target.value)}
-                  placeholder="Departemen (opsional)"
-                />
+                  className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md"
+                >
+                  <option value="">Pilih Departemen</option>
+                  {departments.map((dept) => (
+                    <option key={dept.id} value={dept.name}>{dept.name}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-text-primary mb-2">Role</label>
@@ -447,13 +467,16 @@ export default function AdminUsersPage() {
             </div>
             <div className="mb-4">
               <label className="block text-sm font-medium text-text-primary mb-2">Departemen</label>
-              <input
-                type="text"
+              <select
                 value={editDepartment}
                 onChange={(e) => setEditDepartment(e.target.value)}
-                placeholder="Departemen"
                 className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md"
-              />
+              >
+                <option value="">Pilih Departemen</option>
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.name}>{dept.name}</option>
+                ))}
+              </select>
             </div>
             <div className="mb-6">
               <label className="block text-sm font-medium text-text-primary mb-2">Password Baru (kosongkan jika tidak ingin mengubah)</label>

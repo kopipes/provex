@@ -162,4 +162,15 @@ export const databaseAPI = {
   deleteBackup: (filename: string) => api.delete(`/database/backups/${filename}`),
 };
 
+// Departments API
+export const departmentsAPI = {
+  list: () => api.get<import('./types').Department[]>('/departments'),
+  get: (id: number) => api.get<import('./types').Department>(`/departments/${id}`),
+  create: (data: { name: string; description?: string }) =>
+    api.post<import('./types').Department>('/departments', data),
+  update: (id: number, data: { name?: string; description?: string }) =>
+    api.put<import('./types').Department>(`/departments/${id}`, data),
+  delete: (id: number) => api.delete(`/departments/${id}`),
+};
+
 export default api;

@@ -70,7 +70,7 @@ export function Sidebar() {
       {isMobile && (
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="fixed top-4 left-4 z-50 p-2 bg-inverse text-inverse rounded-lg shadow-lg"
+          className="fixed top-4 right-4 z-50 p-2 bg-inverse text-inverse rounded-lg shadow-lg"
           aria-label="Toggle menu"
         >
           {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { AuthProvider } from '@/lib/auth';
+import { NotificationProvider } from '@/components/Toast';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -15,7 +16,11 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <NotificationProvider>
+            {children}
+          </NotificationProvider>
+        </AuthProvider>
       </body>
     </html>
   );

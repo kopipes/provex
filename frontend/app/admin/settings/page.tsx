@@ -8,6 +8,7 @@ import { Input } from '@/components/Input';
 import { aiConfigAPI, databaseAPI, departmentsAPI } from '@/lib/api';
 import { Database, Download, Upload, Trash2, Plus, TestTube, Save, AlertTriangle, Building2, Edit2, X } from 'lucide-react';
 import type { Department } from '@/lib/types';
+import { useNotification } from '@/components/Toast';
 
 interface Backup {
   filename: string;
@@ -17,27 +18,21 @@ interface Backup {
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const { showToast, showConfirm } = useNotification();
   const [activeTab, setActiveTab] = useState<'ai' | 'database' | 'departments'>('database');
 
-  // AI Config state
-  const [aiConfig, setAiConfig] = useState({
-    base_url: '',
-    model_name: '',
-    api_key: '',
-  });
+  const [aiConfig, setAiConfig] = useState({ base_url: '', model_name: '', api_key: '' });
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSaving, setAiSaving] = useState(false);
   const [aiTesting, setAiTesting] = useState(false);
   const [aiTestResult, setAiTestResult] = useState<{ success: boolean; message: string; latency_ms?: number } | null>(null);
 
-  // Database backup state
   const [backups, setBackups] = useState<Backup[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [restoring, setRestoring] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
-  // Departments state
   const [departments, setDepartments] = useState<Department[]>([]);
   const [deptLoading, setDeptLoading] = useState(false);
   const [editingDept, setEditingDept] = useState<Department | null>(null);
@@ -54,25 +49,16 @@ export default function SettingsPage() {
   }, [user]);
 
   useEffect(() => {
-    if (activeTab === 'departments') {
-      loadDepartments();
-    }
+    if (activeTab === 'departments') loadDepartments();
   }, [activeTab]);
 
   const loadAIConfig = async () => {
     setAiLoading(true);
     try {
-      const response = await aiConfigAPI.get();
-      setAiConfig({
-        base_url: response.data.base_url || '',
-        model_name: response.data.model_name || '',
-        api_key: response.data.has_api_key ? '********' : '',
-      });
-    } catch (err) {
-      console.error('Failed to load AI config:', err);
-    } finally {
-      setAiLoading(false);
-    }
+      const res = await aiConfigAPI.get();
+      setAiConfig({ base_url: res.data.base_url || '', model_name: res.data.model_name || '', api_key: res.data.has_api_key ? '********' : '' });
+    } catch (err) { console.error('Failed to load AI config:', err); }
+    finally { setAiLoading(false); }
   };
 
   const handleSaveAIConfig = async () => {
@@ -83,13 +69,10 @@ export default function SettingsPage() {
       if (aiConfig.model_name) data.model_name = aiConfig.model_name;
       if (aiConfig.api_key && !aiConfig.api_key.includes('*')) data.api_key = aiConfig.api_key;
       await aiConfigAPI.update(data);
-      alert('AI configuration saved successfully');
+      showToast('success', 'AI configuration saved successfully');
       loadAIConfig();
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to save AI config');
-    } finally {
-      setAiSaving(false);
-    }
+    } catch (err: any) { showToast('error', err.response?.data?.detail || 'Failed to save AI config'); }
+    finally { setAiSaving(false); }
   };
 
   const handleTestAI = async () => {
@@ -98,115 +81,90 @@ export default function SettingsPage() {
     try {
       const result = await aiConfigAPI.test();
       setAiTestResult(result.data);
-    } catch (err: any) {
-      setAiTestResult({ success: false, message: err.response?.data?.detail || 'Connection test failed' });
-    } finally {
-      setAiTesting(false);
-    }
+    } catch (err: any) { setAiTestResult({ success: false, message: err.response?.data?.detail || 'Connection test failed' }); }
+    finally { setAiTesting(false); }
   };
 
   const loadBackups = async () => {
     setLoading(true);
-    try {
-      const response = await databaseAPI.listBackups();
-      setBackups(response.data.backups);
-    } catch (err) {
-      console.error('Failed to load backups:', err);
-    } finally {
-      setLoading(false);
-    }
+    try { const res = await databaseAPI.listBackups(); setBackups(res.data.backups); }
+    catch (err) { console.error('Failed to load backups:', err); }
+    finally { setLoading(false); }
   };
 
   const handleCreateBackup = async () => {
     setCreating(true);
     try {
-      const response = await databaseAPI.createBackup();
-      alert(`Backup created: ${response.data.filename}`);
+      const res = await databaseAPI.createBackup();
+      showToast('success', `Backup created: ${res.data.filename}`);
       loadBackups();
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to create backup');
-    } finally {
-      setCreating(false);
-    }
+    } catch (err: any) { showToast('error', err.response?.data?.detail || 'Failed to create backup'); }
+    finally { setCreating(false); }
   };
 
   const handleDownloadBackup = async (filename: string) => {
     try {
-      const response = await databaseAPI.downloadBackup(filename);
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const res = await databaseAPI.downloadBackup(filename);
+      const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (err) {
-      console.error('Download failed:', err);
-      alert('Failed to download backup');
-    }
+    } catch (err) { showToast('error', 'Failed to download backup'); }
   };
 
-  const handleRestoreBackup = async (filename: string) => {
-    if (!confirm(`Restore from backup "${filename}"? Current database will be backed up first.`)) {
-      return;
-    }
-    setRestoring(filename);
-    try {
-      const response = await databaseAPI.restoreBackup(filename);
-      alert(`Database restored successfully. Auto-backup: ${response.data.auto_backup}`);
-      // Refresh the page to reload data
-      window.location.reload();
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to restore backup');
-    } finally {
-      setRestoring(null);
-    }
+  const handleRestoreBackup = (filename: string) => {
+    showConfirm({
+      title: 'Restore Database',
+      message: `Restore from backup "${filename}"? Current database will be backed up first.`,
+      confirmText: 'Restore', variant: 'warning',
+      onConfirm: async () => {
+        setRestoring(filename);
+        try {
+          await databaseAPI.restoreBackup(filename);
+          showToast('success', 'Database restored successfully');
+          window.location.reload();
+        } catch (err: any) { showToast('error', err.response?.data?.detail || 'Failed to restore backup'); }
+        finally { setRestoring(null); }
+      },
+    });
   };
 
-  const handleDeleteBackup = async (filename: string) => {
-    if (!confirm(`Delete backup "${filename}"?`)) {
-      return;
-    }
-    setDeleting(filename);
-    try {
-      await databaseAPI.deleteBackup(filename);
-      loadBackups();
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to delete backup');
-    } finally {
-      setDeleting(null);
-    }
+  const handleDeleteBackup = (filename: string) => {
+    showConfirm({
+      title: 'Delete Backup', message: `Delete backup "${filename}"?`,
+      confirmText: 'Delete', variant: 'danger',
+      onConfirm: async () => {
+        setDeleting(filename);
+        try {
+          await databaseAPI.deleteBackup(filename);
+          showToast('success', 'Backup deleted successfully');
+          loadBackups();
+        } catch (err: any) { showToast('error', err.response?.data?.detail || 'Failed to delete backup'); }
+        finally { setDeleting(null); }
+      },
+    });
   };
 
-  // Department functions
   const loadDepartments = async () => {
     setDeptLoading(true);
-    try {
-      const response = await departmentsAPI.list();
-      setDepartments(response.data);
-    } catch (err) {
-      console.error('Failed to load departments:', err);
-    } finally {
-      setDeptLoading(false);
-    }
+    try { const res = await departmentsAPI.list(); setDepartments(res.data); }
+    catch (err) { console.error('Failed to load departments:', err); }
+    finally { setDeptLoading(false); }
   };
 
   const handleAddDepartment = async () => {
-    if (!deptName.trim()) {
-      alert('Nama departemen diperlukan');
-      return;
-    }
+    if (!deptName.trim()) { showToast('error', 'Nama departemen diperlukan'); return; }
     setDeptSaving(true);
     try {
       await departmentsAPI.create({ name: deptName.trim(), description: deptDesc.trim() || undefined });
       resetDeptForm();
       loadDepartments();
-      alert('Departemen berhasil ditambahkan');
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to create department');
-    } finally {
-      setDeptSaving(false);
-    }
+      showToast('success', 'Departemen berhasil ditambahkan');
+    } catch (err: any) { showToast('error', err.response?.data?.detail || 'Failed to create department'); }
+    finally { setDeptSaving(false); }
   };
 
   const handleEditDepartment = (dept: Department) => {
@@ -216,57 +174,36 @@ export default function SettingsPage() {
   };
 
   const handleUpdateDepartment = async () => {
-    if (!editingDept || !deptName.trim()) {
-      alert('Nama departemen diperlukan');
-      return;
-    }
+    if (!editingDept || !deptName.trim()) { showToast('error', 'Nama departemen diperlukan'); return; }
     setDeptSaving(true);
     try {
       await departmentsAPI.update(editingDept.id, { name: deptName.trim(), description: deptDesc.trim() || undefined });
       resetDeptForm();
       loadDepartments();
-      alert('Departemen berhasil diupdate');
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to update department');
-    } finally {
-      setDeptSaving(false);
-    }
+      showToast('success', 'Departemen berhasil diupdate');
+    } catch (err: any) { showToast('error', err.response?.data?.detail || 'Failed to update department'); }
+    finally { setDeptSaving(false); }
   };
 
-  const handleDeleteDepartment = async (dept: Department) => {
-    if (!confirm(`Hapus departemen "${dept.name}"?`)) {
-      return;
-    }
-    try {
-      await departmentsAPI.delete(dept.id);
-      loadDepartments();
-      alert('Departemen berhasil dihapus');
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to delete department');
-    }
-  };
-
-  const resetDeptForm = () => {
-    setEditingDept(null);
-    setDeptName('');
-    setDeptDesc('');
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
-
-  const formatDate = (isoString: string) => {
-    return new Date(isoString).toLocaleString('id-ID', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+  const handleDeleteDepartment = (dept: Department) => {
+    showConfirm({
+      title: 'Delete Department', message: `Hapus departemen "${dept.name}"?`,
+      confirmText: 'Delete', variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await departmentsAPI.delete(dept.id);
+          loadDepartments();
+          showToast('success', 'Departemen berhasil dihapus');
+        } catch (err: any) { showToast('error', err.response?.data?.detail || 'Failed to delete department'); }
+      },
     });
   };
+
+  const resetDeptForm = () => { setEditingDept(null); setDeptName(''); setDeptDesc(''); };
+
+  const formatFileSize = (bytes: number) => bytes < 1024 ? bytes + ' B' : bytes < 1024 * 1024 ? (bytes / 1024).toFixed(1) + ' KB' : (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+
+  const formatDate = (isoString: string) => new Date(isoString).toLocaleString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   return (
     <div className="flex min-h-screen bg-bg-base">
@@ -274,312 +211,144 @@ export default function SettingsPage() {
       <main className="flex-1 p-4 md:p-8 md:ml-[240px]">
         <div className="max-w-[900px] mx-auto">
           <div className="mb-6 md:mb-8">
-            <h1 className="text-xl md:text-[24px] font-display font-bold text-text-primary">
-              Pengaturan
-            </h1>
-            <p className="text-text-secondary text-sm mt-1">
-              Kelola konfigurasi sistem
-            </p>
+            <h1 className="text-xl md:text-[24px] font-display font-bold text-text-primary">Pengaturan</h1>
+            <p className="text-text-secondary text-sm mt-1">Kelola konfigurasi sistem</p>
           </div>
 
-          {/* Tabs */}
           <div className="flex gap-2 mb-6 border-b border-border-default">
-            <button
-              onClick={() => setActiveTab('database')}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${
-                activeTab === 'database'
-                  ? 'text-accent border-b-2 border-accent'
-                  : 'text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              <Database className="w-4 h-4 inline mr-2" />
-              Database
+            <button onClick={() => setActiveTab('database')} className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'database' ? 'text-accent border-b-2 border-accent' : 'text-text-secondary hover:text-text-primary'}`}>
+              <Database className="w-4 h-4 inline mr-2" />Database
             </button>
-            <button
-              onClick={() => setActiveTab('departments')}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${
-                activeTab === 'departments'
-                  ? 'text-accent border-b-2 border-accent'
-                  : 'text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              <Building2 className="w-4 h-4 inline mr-2" />
-              Departemen
+            <button onClick={() => setActiveTab('departments')} className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'departments' ? 'text-accent border-b-2 border-accent' : 'text-text-secondary hover:text-text-primary'}`}>
+              <Building2 className="w-4 h-4 inline mr-2" />Departemen
             </button>
-            <button
-              onClick={() => setActiveTab('ai')}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${
-                activeTab === 'ai'
-                  ? 'text-accent border-b-2 border-accent'
-                  : 'text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              <TestTube className="w-4 h-4 inline mr-2" />
-              AI Config
+            <button onClick={() => setActiveTab('ai')} className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'ai' ? 'text-accent border-b-2 border-accent' : 'text-text-secondary hover:text-text-primary'}`}>
+              <TestTube className="w-4 h-4 inline mr-2" />AI Config
             </button>
           </div>
 
-          {/* Database Tab */}
           {activeTab === 'database' && (
             <div className="space-y-6">
-              {/* Create Backup */}
               <div className="bg-bg-surface border border-border-default rounded-radius-lg p-6">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                   <div>
                     <h3 className="font-medium text-text-primary">Backup Database</h3>
-                    <p className="text-sm text-text-secondary mt-1">
-                      Buat backup database saat ini
-                    </p>
+                    <p className="text-sm text-text-secondary mt-1">Buat backup database saat ini</p>
                   </div>
-                  <Button onClick={handleCreateBackup} isLoading={creating}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Buat Backup
-                  </Button>
+                  <Button onClick={handleCreateBackup} isLoading={creating}><Plus className="w-4 h-4 mr-2" />Buat Backup</Button>
                 </div>
               </div>
 
-              {/* Backup List */}
               <div className="bg-bg-surface border border-border-default rounded-radius-lg p-6">
                 <h3 className="font-medium text-text-primary mb-4">Daftar Backup</h3>
-                
-                {loading ? (
-                  <p className="text-text-secondary text-center py-4">Memuat...</p>
-                ) : backups.length === 0 ? (
-                  <p className="text-text-secondary text-center py-4">Belum ada backup</p>
-                ) : (
-                  <div className="space-y-3">
-                    {backups.map((backup) => (
-                      <div
-                        key={backup.filename}
-                        className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 p-4 bg-bg-subtle rounded-radius-md"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-text-primary truncate">{backup.filename}</p>
-                          <p className="text-xs text-text-secondary mt-1">
-                            {formatDate(backup.created_at)} • {formatFileSize(backup.size)}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleDownloadBackup(backup.filename)}
-                          >
-                            <Download className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleRestoreBackup(backup.filename)}
-                            disabled={restoring === backup.filename}
-                          >
-                            {restoring === backup.filename ? 'Memuat...' : (
-                              <>
-                                <Upload className="w-4 h-4 mr-1" />
-                                Restore
-                              </>
-                            )}
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="text-danger"
-                            onClick={() => handleDeleteBackup(backup.filename)}
-                            disabled={deleting === backup.filename}
-                          >
-                            {deleting === backup.filename ? '...' : <Trash2 className="w-4 h-4" />}
-                          </Button>
-                        </div>
+                {loading ? <p className="text-text-secondary text-center py-4">Memuat...</p>
+                 : backups.length === 0 ? <p className="text-text-secondary text-center py-4">Belum ada backup</p>
+                 : <div className="space-y-3">
+                  {backups.map((backup) => (
+                    <div key={backup.filename} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 p-4 bg-bg-subtle rounded-radius-md">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-text-primary truncate">{backup.filename}</p>
+                        <p className="text-xs text-text-secondary mt-1">{formatDate(backup.created_at)} • {formatFileSize(backup.size)}</p>
                       </div>
-                    ))}
-                  </div>
-                )}
+                      <div className="flex gap-2">
+                        <Button variant="secondary" size="sm" onClick={() => handleDownloadBackup(backup.filename)}><Download className="w-4 h-4" /></Button>
+                        <Button variant="secondary" size="sm" onClick={() => handleRestoreBackup(backup.filename)} disabled={restoring === backup.filename}>
+                          {restoring === backup.filename ? 'Memuat...' : <><Upload className="w-4 h-4 mr-1" />Restore</>}
+                        </Button>
+                        <Button variant="secondary" size="sm" className="text-danger" onClick={() => handleDeleteBackup(backup.filename)} disabled={deleting === backup.filename}>
+                          {deleting === backup.filename ? '...' : <Trash2 className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>}
               </div>
 
-              {/* Warning */}
               <div className="flex items-start gap-3 p-4 bg-warning/10 border border-warning/30 rounded-radius-md">
                 <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
                 <div className="text-sm">
                   <p className="font-medium text-warning">Perhatian</p>
-                  <p className="text-text-secondary mt-1">
-                    Restore database akan mengganti semua data saat ini. Backup otomatis akan dibuat sebelum restore dilakukan.
-                  </p>
+                  <p className="text-text-secondary mt-1">Restore database akan mengganti semua data saat ini. Backup otomatis akan dibuat sebelum restore dilakukan.</p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Departments Tab */}
           {activeTab === 'departments' && (
             <div className="space-y-6">
-              {/* Add/Edit Department Form */}
               <div className="bg-bg-surface border border-border-default rounded-radius-lg p-6">
-                <h3 className="font-medium text-text-primary mb-4">
-                  {editingDept ? 'Edit Departemen' : 'Tambah Departemen Baru'}
-                </h3>
+                <h3 className="font-medium text-text-primary mb-4">{editingDept ? 'Edit Departemen' : 'Tambah Departemen Baru'}</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-text-primary mb-2">
-                      Nama Departemen *
-                    </label>
-                    <Input
-                      value={deptName}
-                      onChange={(e) => setDeptName(e.target.value)}
-                      placeholder="Contoh: Engineering, Marketing, HR"
-                    />
+                    <label className="block text-sm font-medium text-text-primary mb-2">Nama Departemen *</label>
+                    <Input value={deptName} onChange={(e) => setDeptName(e.target.value)} placeholder="Contoh: Engineering, Marketing, HR" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-text-primary mb-2">
-                      Deskripsi
-                    </label>
-                    <textarea
-                      value={deptDesc}
-                      onChange={(e) => setDeptDesc(e.target.value)}
-                      placeholder="Deskripsi departemen (opsional)"
-                      rows={2}
-                      className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md text-sm resize-none"
-                    />
+                    <label className="block text-sm font-medium text-text-primary mb-2">Deskripsi</label>
+                    <textarea value={deptDesc} onChange={(e) => setDeptDesc(e.target.value)} placeholder="Deskripsi departemen (opsional)" rows={2} className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md text-sm resize-none" />
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      onClick={editingDept ? handleUpdateDepartment : handleAddDepartment}
-                      isLoading={deptSaving}
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      {editingDept ? 'Simpan Perubahan' : 'Tambah'}
+                    <Button onClick={editingDept ? handleUpdateDepartment : handleAddDepartment} isLoading={deptSaving}>
+                      <Save className="w-4 h-4 mr-2" />{editingDept ? 'Simpan Perubahan' : 'Tambah'}
                     </Button>
-                    {editingDept && (
-                      <Button variant="secondary" onClick={resetDeptForm}>
-                        <X className="w-4 h-4 mr-2" />
-                        Batal
-                      </Button>
-                    )}
+                    {editingDept && <Button variant="secondary" onClick={resetDeptForm}><X className="w-4 h-4 mr-2" />Batal</Button>}
                   </div>
                 </div>
               </div>
 
-              {/* Department List */}
               <div className="bg-bg-surface border border-border-default rounded-radius-lg p-6">
                 <h3 className="font-medium text-text-primary mb-4">Daftar Departemen</h3>
-                
-                {deptLoading ? (
-                  <p className="text-text-secondary text-center py-4">Memuat...</p>
-                ) : departments.length === 0 ? (
-                  <p className="text-text-secondary text-center py-4">Belum ada departemen</p>
-                ) : (
-                  <div className="space-y-3">
-                    {departments.map((dept) => (
-                      <div
-                        key={dept.id}
-                        className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 p-4 bg-bg-subtle rounded-radius-md"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-text-primary">{dept.name}</p>
-                          <p className="text-xs text-text-secondary mt-1">
-                            {dept.description || 'Tidak ada deskripsi'}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleEditDepartment(dept)}
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="text-danger"
-                            onClick={() => handleDeleteDepartment(dept)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                {deptLoading ? <p className="text-text-secondary text-center py-4">Memuat...</p>
+                 : departments.length === 0 ? <p className="text-text-secondary text-center py-4">Belum ada departemen</p>
+                 : <div className="space-y-3">
+                  {departments.map((dept) => (
+                    <div key={dept.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 p-4 bg-bg-subtle rounded-radius-md">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-text-primary">{dept.name}</p>
+                        <p className="text-xs text-text-secondary mt-1">{dept.description || 'Tidak ada deskripsi'}</p>
                       </div>
-                    ))}
-                  </div>
-                )}
+                      <div className="flex gap-2">
+                        <Button variant="secondary" size="sm" onClick={() => handleEditDepartment(dept)}><Edit2 className="w-4 h-4" /></Button>
+                        <Button variant="secondary" size="sm" className="text-danger" onClick={() => handleDeleteDepartment(dept)}><Trash2 className="w-4 h-4" /></Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>}
               </div>
             </div>
           )}
 
-          {/* AI Config Tab */}
           {activeTab === 'ai' && (
             <div className="bg-bg-surface border border-border-default rounded-radius-lg p-6">
-              {aiLoading ? (
-                <p className="text-text-secondary text-center py-4">Memuat...</p>
-              ) : (
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="font-medium text-text-primary mb-1">Konfigurasi AI</h3>
-                    <p className="text-sm text-text-secondary">
-                      Atur koneksi ke AI service untuk ekstraksi kwitansi
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-text-primary mb-2">
-                      Base URL
-                    </label>
-                    <Input
-                      value={aiConfig.base_url}
-                      onChange={(e) => setAiConfig({ ...aiConfig, base_url: e.target.value })}
-                      placeholder="https://api.example.com/v1"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-text-primary mb-2">
-                      Model Name
-                    </label>
-                    <Input
-                      value={aiConfig.model_name}
-                      onChange={(e) => setAiConfig({ ...aiConfig, model_name: e.target.value })}
-                      placeholder="gpt-4o-mini"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-text-primary mb-2">
-                      API Key
-                    </label>
-                    <Input
-                      type="password"
-                      value={aiConfig.api_key}
-                      onChange={(e) => setAiConfig({ ...aiConfig, api_key: e.target.value })}
-                      placeholder="Kosongkan jika tidak ingin mengubah"
-                    />
-                  </div>
-
-                  {aiTestResult && (
-                    <div className={`p-4 rounded-radius-md ${
-                      aiTestResult.success ? 'bg-success/10 border border-success/30' : 'bg-danger/10 border border-danger/30'
-                    }`}>
-                      <p className={`font-medium ${
-                        aiTestResult.success ? 'text-success' : 'text-danger'
-                      }`}>
-                        {aiTestResult.success ? 'Connection Successful' : 'Connection Failed'}
-                      </p>
-                      <p className="text-sm text-text-secondary mt-1">
-                        {aiTestResult.message}
-                        {aiTestResult.latency_ms && ` (${aiTestResult.latency_ms}ms)`}
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                    <Button variant="secondary" onClick={handleTestAI} isLoading={aiTesting}>
-                      <TestTube className="w-4 h-4 mr-2" />
-                      Test Connection
-                    </Button>
-                    <Button onClick={handleSaveAIConfig} isLoading={aiSaving}>
-                      <Save className="w-4 h-4 mr-2" />
-                      Simpan
-                    </Button>
-                  </div>
+              {aiLoading ? <p className="text-text-secondary text-center py-4">Memuat...</p>
+               : <div className="space-y-6">
+                <div>
+                  <h3 className="font-medium text-text-primary mb-1">Konfigurasi AI</h3>
+                  <p className="text-sm text-text-secondary">Atur koneksi ke AI service untuk ekstraksi kwitansi</p>
                 </div>
-              )}
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-2">Base URL</label>
+                  <Input value={aiConfig.base_url} onChange={(e) => setAiConfig({ ...aiConfig, base_url: e.target.value })} placeholder="https://api.example.com/v1" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-2">Model Name</label>
+                  <Input value={aiConfig.model_name} onChange={(e) => setAiConfig({ ...aiConfig, model_name: e.target.value })} placeholder="gpt-4o-mini" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-2">API Key</label>
+                  <Input type="password" value={aiConfig.api_key} onChange={(e) => setAiConfig({ ...aiConfig, api_key: e.target.value })} placeholder="Kosongkan jika tidak ingin mengubah" />
+                </div>
+                {aiTestResult && (
+                  <div className={`p-4 rounded-radius-md ${aiTestResult.success ? 'bg-success/10 border border-success/30' : 'bg-danger/10 border border-danger/30'}`}>
+                    <p className={`font-medium ${aiTestResult.success ? 'text-success' : 'text-danger'}`}>{aiTestResult.success ? 'Connection Successful' : 'Connection Failed'}</p>
+                    <p className="text-sm text-text-secondary mt-1">{aiTestResult.message}{aiTestResult.latency_ms && ` (${aiTestResult.latency_ms}ms)`}</p>
+                  </div>
+                )}
+                <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  <Button variant="secondary" onClick={handleTestAI} isLoading={aiTesting}><TestTube className="w-4 h-4 mr-2" />Test Connection</Button>
+                  <Button onClick={handleSaveAIConfig} isLoading={aiSaving}><Save className="w-4 h-4 mr-2" />Simpan</Button>
+                </div>
+              </div>}
             </div>
           )}
         </div>

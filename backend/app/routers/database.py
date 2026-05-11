@@ -12,7 +12,7 @@ import sqlite3
 router = APIRouter(prefix="/database", tags=["Database"])
 
 
-@router.get("/backup")
+@router.post("/backup")
 def create_backup(
     current_user: User = Depends(require_admin)
 ):

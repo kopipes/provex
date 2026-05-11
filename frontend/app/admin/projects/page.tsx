@@ -24,6 +24,7 @@ export default function AdminProjectsPage() {
     start_date: '',
     end_date: '',
     budget_limit: '',
+    no_limit: false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -67,7 +68,7 @@ export default function AdminProjectsPage() {
         description: formData.description || undefined,
         start_date: formData.start_date,
         end_date: formData.end_date || undefined,
-        budget_limit: formData.budget_limit ? parseFloat(formData.budget_limit) : undefined,
+        budget_limit: formData.no_limit ? null : (formData.budget_limit ? parseFloat(formData.budget_limit) : null),
       };
       
       if (editingProject) {
@@ -93,6 +94,7 @@ export default function AdminProjectsPage() {
       start_date: project.start_date,
       end_date: project.end_date || '',
       budget_limit: project.budget_limit?.toString() || '',
+      no_limit: project.budget_limit === null,
     });
     setShowForm(true);
   };
@@ -110,26 +112,26 @@ export default function AdminProjectsPage() {
   const resetForm = () => {
     setShowForm(false);
     setEditingProject(null);
-    setFormData({ name: '', description: '', start_date: '', end_date: '', budget_limit: '' });
+    setFormData({ name: '', description: '', start_date: '', end_date: '', budget_limit: '', no_limit: false });
     setErrors({});
   };
 
   return (
     <div className="flex min-h-screen bg-bg-base">
       <Sidebar />
-      <main className="flex-1 p-8 md:ml-[240px]">
+      <main className="flex-1 p-4 md:p-8 md:ml-[240px]">
         <div className="max-w-[1200px] mx-auto">
           {/* Header */}
-          <div className="mb-8 flex justify-between items-center">
+          <div className="mb-6 md:mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
-              <h1 className="text-[24px] font-display font-bold text-text-primary">
+              <h1 className="text-xl md:text-[24px] font-display font-bold text-text-primary">
                 Manajemen Project
               </h1>
               <p className="text-text-secondary text-sm mt-1">
                 Kelola semua project
               </p>
             </div>
-            <Button onClick={() => setShowForm(true)}>
+            <Button onClick={() => setShowForm(true)} className="w-full sm:w-auto">
               Project Baru
             </Button>
           </div>
@@ -155,25 +157,25 @@ export default function AdminProjectsPage() {
               {projects.map((project) => (
                 <div
                   key={project.id}
-                  className="bg-bg-surface border border-border-default rounded-radius-lg p-6"
+                  className="bg-bg-surface border border-border-default rounded-radius-lg p-4 md:p-6"
                 >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-medium text-text-primary">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-3">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base md:text-lg font-medium text-text-primary truncate">
                         {project.name}
                       </h3>
-                      <p className="text-text-secondary text-sm mt-1">
+                      <p className="text-text-secondary text-sm mt-1 line-clamp-2">
                         {project.description || 'Tidak ada deskripsi'}
                       </p>
                     </div>
                     <StatusBadge status={project.status} />
                   </div>
 
-                  <div className="mt-4 grid grid-cols-4 gap-4 text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-sm">
                     <div>
                       <span className="text-text-muted">Anggaran</span>
                       <p className="font-medium text-text-primary">
-                        {project.budget_limit ? formatCurrency(project.budget_limit) : '-'}
+                        {project.budget_limit === null ? 'Tanpa Limit' : project.budget_limit ? formatCurrency(project.budget_limit) : '-'}
                       </p>
                     </div>
                     <div>
@@ -190,7 +192,7 @@ export default function AdminProjectsPage() {
                     </div>
                     <div>
                       <span className="text-text-muted">Periode</span>
-                      <p className="font-medium text-text-primary">
+                      <p className="font-medium text-text-primary text-xs md:text-sm">
                         {formatDate(project.start_date)} - {project.end_date ? formatDate(project.end_date) : '-'}
                       </p>
                     </div>
@@ -276,10 +278,24 @@ export default function AdminProjectsPage() {
                 <label className="block text-sm font-medium text-text-primary mb-2">
                   Budget Limit (Rp)
                 </label>
+                <div className="flex items-center gap-3 mb-2">
+                  <input
+                    type="checkbox"
+                    id="no_limit"
+                    checked={formData.no_limit}
+                    onChange={(e) => setFormData(prev => ({ ...prev, no_limit: e.target.checked, budget_limit: e.target.checked ? '' : prev.budget_limit }))}
+                    className="w-4 h-4 rounded border-border-default text-accent focus:ring-accent"
+                  />
+                  <label htmlFor="no_limit" className="text-sm text-text-secondary">
+                    Tidak ada limit anggaran
+                  </label>
+                </div>
                 <Input
                   type="number"
                   value={formData.budget_limit}
-                  onChange={(e) => setFormData(prev => ({ ...prev, budget_limit: e.target.value }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, budget_limit: e.target.value, no_limit: false }))}
+                  disabled={formData.no_limit}
+                  placeholder={formData.no_limit ? 'Tidak ada limit' : 'Masukkan budget limit'}
                 />
               </div>
               <div className="flex justify-end gap-4 pt-4">

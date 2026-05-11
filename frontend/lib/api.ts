@@ -59,14 +59,14 @@ export const projectsAPI = {
     description?: string;
     start_date: string;
     end_date?: string;
-    budget_limit?: number;
+    budget_limit?: number | null;
   }) => api.post<Project>('/projects', data),
   update: (id: number, data: {
     name?: string;
     description?: string;
     start_date?: string;
     end_date?: string;
-    budget_limit?: number;
+    budget_limit?: number | null;
     status?: string;
   }) => api.put<Project>(`/projects/${id}`, data),
   delete: (id: number) => api.delete(`/projects/${id}`),

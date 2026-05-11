@@ -22,7 +22,7 @@ export interface Project {
   description?: string;
   start_date: string;
   end_date?: string;
-  budget_limit?: number;
+  budget_limit?: number | null;
   status: ProjectStatus;
   created_by?: number;
   created_at: string;

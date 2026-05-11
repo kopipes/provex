@@ -5,50 +5,50 @@
 @tailwind utilities;
 
 :root {
-  /* Background - Modern gradient base */
-  --color-bg-base: #F8FAFC;
+  /* Background - Modern clean base */
+  --color-bg-base: #FAFBFC;
   --color-bg-surface: #FFFFFF;
-  --color-bg-subtle: #F1F5F9;
-  --color-bg-inverse: #0F172A;
+  --color-bg-subtle: #F4F6F8;
+  --color-bg-inverse: #1A202C;
   --color-bg-card: #FFFFFF;
   
   /* Border - Soft borders */
-  --color-border-default: #E2E8F0;
-  --color-border-strong: #CBD5E1;
-  --color-border-focus: #3B82F6;
+  --color-border-default: #E5E7EB;
+  --color-border-strong: #D1D5DB;
+  --color-border-focus: #6366F1;
   
   /* Text - Clear hierarchy */
-  --color-text-primary: #1E293B;
-  --color-text-secondary: #64748B;
-  --color-text-muted: #94A3B8;
+  --color-text-primary: #111827;
+  --color-text-secondary: #4B5563;
+  --color-text-muted: #9CA3AF;
   --color-text-inverse: #FFFFFF;
-  --color-text-link: #3B82F6;
+  --color-text-link: #6366F1;
   
-  /* Accent - Vibrant blue */
-  --color-accent: #3B82F6;
-  --color-accent-hover: #2563EB;
-  --color-accent-subtle: #EFF6FF;
-  --color-accent-text: #1D4ED8;
+  /* Accent - Modern indigo/purple */
+  --color-accent: #6366F1;
+  --color-accent-hover: #4F46E5;
+  --color-accent-subtle: #EEF2FF;
+  --color-accent-text: #4338CA;
   
-  /* Success - Green */
+  /* Success - Fresh green */
   --color-success: #10B981;
-  --color-success-subtle: #ECFDF5;
-  --color-success-text: #065F46;
+  --color-success-subtle: #D1FAE5;
+  --color-success-text: #059669;
   
-  /* Warning - Amber */
+  /* Warning - Warm amber */
   --color-warning: #F59E0B;
-  --color-warning-subtle: #FFFBEB;
-  --color-warning-text: #92400E;
+  --color-warning-subtle: #FEF3C7;
+  --color-warning-text: #D97706;
   
-  /* Danger - Red */
+  /* Danger - Modern red */
   --color-danger: #EF4444;
-  --color-danger-subtle: #FEF2F2;
-  --color-danger-text: #991B1B;
+  --color-danger-subtle: #FEE2E2;
+  --color-danger-text: #DC2626;
   
-  /* Neutral - Slate */
-  --color-neutral: #64748B;
-  --color-neutral-subtle: #F1F5F9;
-  --color-neutral-text: #334155;
+  /* Neutral - Cool gray */
+  --color-neutral: #6B7280;
+  --color-neutral-subtle: #F3F4F6;
+  --color-neutral-text: #374151;
 }
 
 * {

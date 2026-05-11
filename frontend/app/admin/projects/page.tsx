@@ -9,9 +9,11 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 import { projectsAPI, usersAPI } from '@/lib/api';
 import type { Project, User } from '@/lib/types';
 import { Search } from 'lucide-react';
+import { useNotification } from '@/components/Toast';
 
 export default function AdminProjectsPage() {
   const { user } = useAuth();
+  const { showConfirm, showToast } = useNotification();
   const [projects, setProjects] = useState<Project[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -95,14 +97,16 @@ export default function AdminProjectsPage() {
       
       if (editingProject) {
         await projectsAPI.update(editingProject.id, data);
+        showToast('success', 'Project berhasil diupdate');
       } else {
         await projectsAPI.create(data);
+        showToast('success', 'Project berhasil dibuat');
       }
       
       resetForm();
       loadData();
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to save project');
+      showToast('error', err.response?.data?.detail || 'Failed to save project');
     } finally {
       setSubmitting(false);
     }
@@ -137,14 +141,22 @@ export default function AdminProjectsPage() {
     setShowForm(true);
   };
 
-  const handleDelete = async (projectId: number) => {
-    if (!confirm('Hapus project ini?')) return;
-    try {
-      await projectsAPI.delete(projectId);
-      loadData();
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to delete project');
-    }
+  const handleDelete = (project: Project) => {
+    showConfirm({
+      title: 'Hapus Project',
+      message: `Hapus project "${project.name}"? Semua klaim dalam project ini akan tetap ada.`,
+      confirmText: 'Hapus',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await projectsAPI.delete(project.id);
+          showToast('success', 'Project berhasil dihapus');
+          loadData();
+        } catch (err: any) {
+          showToast('error', err.response?.data?.detail || 'Failed to delete project');
+        }
+      },
+    });
   };
 
   const resetForm = () => {
@@ -152,6 +164,10 @@ export default function AdminProjectsPage() {
     setEditingProject(null);
     setFormData({ name: '', description: '', start_date: '', end_date: '', budget_limit: '', no_limit: false });
     setErrors({});
+  };
+
+  const updateFormData = (field: string, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -242,7 +258,7 @@ export default function AdminProjectsPage() {
 
                   <div className="mt-4 pt-4 border-t border-border-default flex justify-end gap-2">
                     <Button variant="secondary" size="sm" onClick={() => handleEdit(project)}>Edit</Button>
-                    <Button variant="secondary" size="sm" className="text-danger" onClick={() => handleDelete(project.id)}>Hapus</Button>
+                    <Button variant="secondary" size="sm" className="text-danger" onClick={() => handleDelete(project)}>Hapus</Button>
                   </div>
                 </div>
               ))}
@@ -263,7 +279,7 @@ export default function AdminProjectsPage() {
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => updateFormData('name', e.target.value)}
                   className={`w-full px-4 py-2.5 bg-bg-surface border rounded-radius-md ${errors.name ? 'border-danger' : 'border-border-default'}`}
                 />
                 {errors.name && <p className="text-danger text-sm mt-1">{errors.name}</p>}
@@ -272,7 +288,7 @@ export default function AdminProjectsPage() {
                 <label className="block text-sm font-medium text-text-primary mb-2">Deskripsi</label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) => updateFormData('description', e.target.value)}
                   rows={3}
                   className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md resize-none"
                 />
@@ -283,7 +299,7 @@ export default function AdminProjectsPage() {
                   <input
                     type="date"
                     value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    onChange={(e) => updateFormData('start_date', e.target.value)}
                     className={`w-full px-4 py-2.5 bg-bg-surface border rounded-radius-md ${errors.start_date ? 'border-danger' : 'border-border-default'}`}
                   />
                   {errors.start_date && <p className="text-danger text-sm mt-1">{errors.start_date}</p>}
@@ -293,19 +309,24 @@ export default function AdminProjectsPage() {
                   <input
                     type="date"
                     value={formData.end_date}
-                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    onChange={(e) => updateFormData('end_date', e.target.value)}
                     className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">Budget Limit (Rp)</label>
                 <div className="flex items-center gap-3 mb-2">
                   <input
                     type="checkbox"
                     id="no_limit"
                     checked={formData.no_limit}
-                    onChange={(e) => setFormData({ ...formData, no_limit: e.target.checked, budget_limit: e.target.checked ? '' : formData.budget_limit })}
+                    onChange={(e) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        no_limit: e.target.checked,
+                        budget_limit: e.target.checked ? '' : prev.budget_limit
+                      }));
+                    }}
                     className="w-4 h-4 rounded border-border-default"
                   />
                   <label htmlFor="no_limit" className="text-sm text-text-secondary">Tidak ada limit anggaran</label>
@@ -313,7 +334,13 @@ export default function AdminProjectsPage() {
                 <input
                   type="number"
                   value={formData.budget_limit}
-                  onChange={(e) => setFormData({ ...formData, budget_limit: e.target.value, no_limit: false })}
+                  onChange={(e) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      budget_limit: e.target.value,
+                      no_limit: false
+                    }));
+                  }}
                   disabled={formData.no_limit}
                   placeholder={formData.no_limit ? 'Tidak ada limit' : 'Masukkan budget limit'}
                   className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md disabled:opacity-50"

@@ -5,18 +5,21 @@ import { useAuth } from '@/lib/auth';
 import { Sidebar } from '@/components/Sidebar';
 import { StatusBadge } from '@/components/Badge';
 import { Button } from '@/components/Button';
+import { Input } from '@/components/Input';
 import { formatDate } from '@/lib/utils';
 import { usersAPI } from '@/lib/api';
 import type { User } from '@/lib/types';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Search } from 'lucide-react';
 
 export default function AdminUsersPage() {
   const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [actionUser, setActionUser] = useState<User | null>(null);
-  const [actionType, setActionType] = useState<'status' | 'role' | 'edit' | null>(null);
+  const [actionType, setActionType] = useState<'status' | 'role' | 'edit' | 'add' | null>(null);
   const [newStatus, setNewStatus] = useState('');
   const [newRole, setNewRole] = useState('');
   const [editName, setEditName] = useState('');
@@ -24,20 +27,78 @@ export default function AdminUsersPage() {
   const [editPassword, setEditPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Add user form state
+  const [addName, setAddName] = useState('');
+  const [addEmail, setAddEmail] = useState('');
+  const [addPassword, setAddPassword] = useState('');
+  const [addDepartment, setAddDepartment] = useState('');
+  const [addRole, setAddRole] = useState('user');
+
   useEffect(() => {
     loadUsers();
   }, []);
+
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setFilteredUsers(users);
+    } else {
+      const query = searchQuery.toLowerCase();
+      setFilteredUsers(
+        users.filter(
+          (u) =>
+            u.name.toLowerCase().includes(query) ||
+            u.email.toLowerCase().includes(query) ||
+            (u.department && u.department.toLowerCase().includes(query))
+        )
+      );
+    }
+  }, [searchQuery, users]);
 
   const loadUsers = async () => {
     try {
       setLoading(true);
       const response = await usersAPI.list();
       setUsers(response.data);
+      setFilteredUsers(response.data);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load users');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAddUser = async () => {
+    if (!addName || !addEmail || !addPassword) {
+      alert('Name, email, and password are required');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await usersAPI.create({
+        name: addName,
+        email: addEmail,
+        password: addPassword,
+        department: addDepartment || undefined,
+        role: addRole,
+      });
+      setActionUser(null);
+      setActionType(null);
+      resetAddForm();
+      loadUsers();
+      alert('User created successfully');
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to create user');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const resetAddForm = () => {
+    setAddName('');
+    setAddEmail('');
+    setAddPassword('');
+    setAddDepartment('');
+    setAddRole('user');
   };
 
   const handleUpdateStatus = async () => {
@@ -104,12 +165,32 @@ export default function AdminUsersPage() {
       <main className="flex-1 p-4 md:p-8 md:ml-[240px]">
         <div className="max-w-[1200px] mx-auto">
           <div className="mb-6 md:mb-8">
-            <h1 className="text-xl md:text-[24px] font-display font-bold text-text-primary">
-              Kelola Pengguna
-            </h1>
-            <p className="text-text-secondary text-sm mt-1">
-              Kelola user dan role pengguna
-            </p>
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-4">
+              <div>
+                <h1 className="text-xl md:text-[24px] font-display font-bold text-text-primary">
+                  Kelola Pengguna
+                </h1>
+                <p className="text-text-secondary text-sm mt-1">
+                  Kelola user dan role pengguna
+                </p>
+              </div>
+              <Button onClick={() => { setActionType('add'); setActionUser(null); }} className="w-full sm:w-auto">
+                <UserPlus className="w-4 h-4 mr-2" />
+                Tambah User
+              </Button>
+            </div>
+
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari nama, email, atau departemen..."
+                className="w-full pl-10 pr-4 py-2 bg-bg-surface border border-border-default rounded-radius-md text-sm"
+              />
+            </div>
           </div>
 
           {loading ? (
@@ -123,9 +204,15 @@ export default function AdminUsersPage() {
                 Coba Lagi
               </Button>
             </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="bg-bg-surface border border-border-default rounded-radius-lg p-8 text-center">
+              <p className="text-text-secondary">
+                {searchQuery ? 'Tidak ada pengguna ditemukan' : 'Belum ada pengguna'}
+              </p>
+            </div>
           ) : (
             <div className="space-y-4">
-              {users.map((u) => (
+              {filteredUsers.map((u) => (
                 <div key={u.id} className="bg-bg-surface border border-border-default rounded-radius-lg p-4 md:p-5">
                   {/* Header */}
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
@@ -206,6 +293,73 @@ export default function AdminUsersPage() {
           )}
         </div>
       </main>
+
+      {/* Add User Modal */}
+      {actionType === 'add' && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[400px]">
+            <h2 className="text-lg font-semibold text-text-primary mb-4">
+              Tambah User Baru
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">Nama</label>
+                <Input
+                  value={addName}
+                  onChange={(e) => setAddName(e.target.value)}
+                  placeholder="Nama lengkap"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">Email</label>
+                <Input
+                  type="email"
+                  value={addEmail}
+                  onChange={(e) => setAddEmail(e.target.value)}
+                  placeholder="email@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">Password</label>
+                <Input
+                  type="password"
+                  value={addPassword}
+                  onChange={(e) => setAddPassword(e.target.value)}
+                  placeholder="Minimal 6 karakter"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">Departemen</label>
+                <Input
+                  value={addDepartment}
+                  onChange={(e) => setAddDepartment(e.target.value)}
+                  placeholder="Departemen (opsional)"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">Role</label>
+                <select
+                  value={addRole}
+                  onChange={(e) => setAddRole(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md"
+                >
+                  <option value="user">User</option>
+                  <option value="manager">Manager</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row justify-end gap-2 mt-6">
+              <Button variant="secondary" onClick={() => { setActionType(null); resetAddForm(); }} className="w-full sm:w-auto">
+                Batal
+              </Button>
+              <Button onClick={handleAddUser} isLoading={submitting} className="w-full sm:w-auto">
+                Simpan
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {actionUser && actionType === 'status' && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

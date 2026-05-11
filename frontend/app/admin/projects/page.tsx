@@ -9,10 +9,12 @@ import { Input } from '@/components/Input';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { projectsAPI, usersAPI } from '@/lib/api';
 import type { Project, User } from '@/lib/types';
+import { Search } from 'lucide-react';
 
 export default function AdminProjectsPage() {
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -28,10 +30,15 @@ export default function AdminProjectsPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    filterProjects();
+  }, [searchQuery, projects]);
 
   const loadData = async () => {
     try {
@@ -41,11 +48,27 @@ export default function AdminProjectsPage() {
         usersAPI.list(),
       ]);
       setProjects(projectsRes.data);
+      setFilteredProjects(projectsRes.data);
       setUsers(usersRes.data);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const filterProjects = () => {
+    if (searchQuery.trim() === '') {
+      setFilteredProjects(projects);
+    } else {
+      const query = searchQuery.toLowerCase();
+      setFilteredProjects(
+        projects.filter(
+          (p) =>
+            p.name.toLowerCase().includes(query) ||
+            p.description?.toLowerCase().includes(query)
+        )
+      );
     }
   };
 
@@ -121,7 +144,6 @@ export default function AdminProjectsPage() {
       <Sidebar />
       <main className="flex-1 p-4 md:p-8 md:ml-[240px]">
         <div className="max-w-[1200px] mx-auto">
-          {/* Header */}
           <div className="mb-6 md:mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
               <h1 className="text-xl md:text-[24px] font-display font-bold text-text-primary">
@@ -136,7 +158,19 @@ export default function AdminProjectsPage() {
             </Button>
           </div>
 
-          {/* Projects List */}
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari nama atau deskripsi project..."
+                className="w-full pl-10 pr-4 py-2 bg-bg-surface border border-border-default rounded-radius-md text-sm"
+              />
+            </div>
+          </div>
+
           {loading ? (
             <div className="bg-bg-surface border border-border-default rounded-radius-lg p-8 text-center">
               <p className="text-text-secondary">Memuat project...</p>
@@ -144,21 +178,18 @@ export default function AdminProjectsPage() {
           ) : error ? (
             <div className="bg-bg-surface border border-border-default rounded-radius-lg p-8 text-center">
               <p className="text-danger">{error}</p>
-              <Button onClick={loadData} className="mt-4">
-                Coba Lagi
-              </Button>
+              <Button onClick={loadData} className="mt-4">Coba Lagi</Button>
             </div>
-          ) : projects.length === 0 ? (
+          ) : filteredProjects.length === 0 ? (
             <div className="bg-bg-surface border border-border-default rounded-radius-lg p-8 text-center">
-              <p className="text-text-secondary">Tidak ada project ditemukan</p>
+              <p className="text-text-secondary">
+                {searchQuery ? 'Tidak ada project ditemukan' : 'Tidak ada project'}
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
-              {projects.map((project) => (
-                <div
-                  key={project.id}
-                  className="bg-bg-surface border border-border-default rounded-radius-lg p-4 md:p-6"
-                >
+              {filteredProjects.map((project) => (
+                <div key={project.id} className="bg-bg-surface border border-border-default rounded-radius-lg p-4 md:p-6">
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-3">
                     <div className="flex-1 min-w-0">
                       <h3 className="text-base md:text-lg font-medium text-text-primary truncate">
@@ -180,15 +211,11 @@ export default function AdminProjectsPage() {
                     </div>
                     <div>
                       <span className="text-text-muted">Total Klaim</span>
-                      <p className="font-medium text-text-primary">
-                        {formatCurrency(project.total_claims)}
-                      </p>
+                      <p className="font-medium text-text-primary">{formatCurrency(project.total_claims)}</p>
                     </div>
                     <div>
                       <span className="text-text-muted">Anggota</span>
-                      <p className="font-medium text-text-primary">
-                        {project.member_count} orang
-                      </p>
+                      <p className="font-medium text-text-primary">{project.member_count} orang</p>
                     </div>
                     <div>
                       <span className="text-text-muted">Periode</span>
@@ -199,17 +226,8 @@ export default function AdminProjectsPage() {
                   </div>
 
                   <div className="mt-4 pt-4 border-t border-border-default flex justify-end gap-2">
-                    <Button variant="secondary" size="sm" onClick={() => handleEdit(project)}>
-                      Edit
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="text-danger"
-                      onClick={() => handleDelete(project.id)}
-                    >
-                      Hapus
-                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => handleEdit(project)}>Edit</Button>
+                    <Button variant="secondary" size="sm" className="text-danger" onClick={() => handleDelete(project.id)}>Hapus</Button>
                   </div>
                 </div>
               ))}
@@ -218,7 +236,6 @@ export default function AdminProjectsPage() {
         </div>
       </main>
 
-      {/* Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[500px]">
@@ -227,9 +244,7 @@ export default function AdminProjectsPage() {
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">
-                  Nama Project
-                </label>
+                <label className="block text-sm font-medium text-text-primary mb-2">Nama Project</label>
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
@@ -237,9 +252,7 @@ export default function AdminProjectsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">
-                  Deskripsi
-                </label>
+                <label className="block text-sm font-medium text-text-primary mb-2">Deskripsi</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
@@ -249,23 +262,17 @@ export default function AdminProjectsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-text-primary mb-2">
-                    Tanggal Mulai
-                  </label>
+                  <label className="block text-sm font-medium text-text-primary mb-2">Tanggal Mulai</label>
                   <input
                     type="date"
                     value={formData.start_date}
                     onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
                     className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md"
                   />
-                  {errors.start_date && (
-                    <p className="text-danger text-sm mt-1">{errors.start_date}</p>
-                  )}
+                  {errors.start_date && <p className="text-danger text-sm mt-1">{errors.start_date}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-text-primary mb-2">
-                    Tanggal Selesai
-                  </label>
+                  <label className="block text-sm font-medium text-text-primary mb-2">Tanggal Selesai</label>
                   <input
                     type="date"
                     value={formData.end_date}
@@ -275,9 +282,7 @@ export default function AdminProjectsPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">
-                  Budget Limit (Rp)
-                </label>
+                <label className="block text-sm font-medium text-text-primary mb-2">Budget Limit (Rp)</label>
                 <div className="flex items-center gap-3 mb-2">
                   <input
                     type="checkbox"
@@ -286,9 +291,7 @@ export default function AdminProjectsPage() {
                     onChange={(e) => setFormData(prev => ({ ...prev, no_limit: e.target.checked, budget_limit: e.target.checked ? '' : prev.budget_limit }))}
                     className="w-4 h-4 rounded border-border-default text-accent focus:ring-accent"
                   />
-                  <label htmlFor="no_limit" className="text-sm text-text-secondary">
-                    Tidak ada limit anggaran
-                  </label>
+                  <label htmlFor="no_limit" className="text-sm text-text-secondary">Tidak ada limit anggaran</label>
                 </div>
                 <Input
                   type="number"
@@ -299,12 +302,8 @@ export default function AdminProjectsPage() {
                 />
               </div>
               <div className="flex justify-end gap-4 pt-4">
-                <Button type="button" variant="secondary" onClick={resetForm}>
-                  Batal
-                </Button>
-                <Button type="submit" isLoading={submitting}>
-                  Simpan
-                </Button>
+                <Button type="button" variant="secondary" onClick={resetForm}>Batal</Button>
+                <Button type="submit" isLoading={submitting}>Simpan</Button>
               </div>
             </form>
           </div>

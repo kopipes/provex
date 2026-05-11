@@ -8,17 +8,24 @@ import { Button } from '@/components/Button';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { claimsAPI } from '@/lib/api';
 import type { Claim } from '@/lib/types';
+import { Search } from 'lucide-react';
 
 export default function HistoryPage() {
   const { user } = useAuth();
   const [claims, setClaims] = useState<Claim[]>([]);
+  const [filteredClaims, setFilteredClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadClaims();
   }, []);
+
+  useEffect(() => {
+    filterClaims();
+  }, [searchQuery, claims, filter]);
 
   const loadClaims = async () => {
     try {
@@ -32,9 +39,29 @@ export default function HistoryPage() {
     }
   };
 
+  const filterClaims = () => {
+    let result = claims;
+    
+    if (filter) {
+      result = result.filter(c => c.status === filter);
+    }
+    
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (c) =>
+          c.merchant_name.toLowerCase().includes(query) ||
+          c.project_name?.toLowerCase().includes(query) ||
+          c.category.toLowerCase().includes(query) ||
+          c.description?.toLowerCase().includes(query)
+      );
+    }
+    
+    setFilteredClaims(result);
+  };
+
   const handleFilterChange = (newFilter: string) => {
     setFilter(newFilter);
-    loadClaims();
   };
 
   const handleSubmitClaim = async (claimId: number) => {
@@ -49,10 +76,10 @@ export default function HistoryPage() {
   return (
     <div className="flex min-h-screen bg-bg-base">
       <Sidebar />
-      <main className="flex-1 p-8 md:ml-[240px]">
+      <main className="flex-1 p-4 md:p-8 md:ml-[240px]">
         <div className="max-w-[1100px] mx-auto">
           {/* Header */}
-          <div className="mb-8 flex justify-between items-center">
+          <div className="mb-8 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
             <div>
               <h1 className="text-[24px] font-display font-bold text-text-primary">
                 Riwayat Klaim
@@ -66,21 +93,36 @@ export default function HistoryPage() {
             </Button>
           </div>
 
-          {/* Filter */}
-          <div className="mb-6 flex gap-2">
-            {['', 'draft', 'submitted', 'approved', 'rejected'].map((status) => (
-              <button
-                key={status}
-                onClick={() => handleFilterChange(status)}
-                className={`px-4 py-2 rounded-radius-md text-sm font-medium transition-colors ${
-                  filter === status
-                    ? 'bg-accent text-white'
-                    : 'bg-bg-surface border border-border-default text-text-primary hover:border-accent/50'
-                }`}
-              >
-                {status === '' ? 'Semua' : status.charAt(0).toUpperCase() + status.slice(1)}
-              </button>
-            ))}
+          {/* Search and Filter */}
+          <div className="mb-6 space-y-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari merchant, project, kategori..."
+                className="w-full pl-10 pr-4 py-2 bg-bg-surface border border-border-default rounded-radius-md text-sm"
+              />
+            </div>
+            
+            {/* Filter */}
+            <div className="flex gap-2 flex-wrap">
+              {['', 'draft', 'submitted', 'approved', 'rejected'].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => handleFilterChange(status)}
+                  className={`px-4 py-2 rounded-radius-md text-sm font-medium transition-colors ${
+                    filter === status
+                      ? 'bg-accent text-white'
+                      : 'bg-bg-surface border border-border-default text-text-primary hover:border-accent/50'
+                  }`}
+                >
+                  {status === '' ? 'Semua' : status.charAt(0).toUpperCase() + status.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Claims List */}
@@ -95,13 +137,15 @@ export default function HistoryPage() {
                 Coba Lagi
               </Button>
             </div>
-          ) : claims.length === 0 ? (
+          ) : filteredClaims.length === 0 ? (
             <div className="bg-bg-surface border border-border-default rounded-radius-lg p-8 text-center">
-              <p className="text-text-secondary">Tidak ada klaim ditemukan</p>
+              <p className="text-text-secondary">
+                {searchQuery ? 'Tidak ada klaim ditemukan' : 'Tidak ada klaim'}
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
-              {claims.map((claim) => (
+              {filteredClaims.map((claim) => (
                 <div
                   key={claim.id}
                   className="bg-bg-surface border border-border-default rounded-radius-lg p-6"

@@ -8,6 +8,7 @@ import { Button } from '@/components/Button';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { claimsAPI, analyticsAPI, projectsAPI } from '@/lib/api';
 import type { Claim, Project } from '@/lib/types';
+import { Search } from 'lucide-react';
 
 export default function AdminClaimsPage() {
   const { user } = useAuth();
@@ -24,10 +25,16 @@ export default function AdminClaimsPage() {
   const [actionType, setActionType] = useState<'approve' | 'reject' | 'revision' | null>(null);
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredClaims, setFilteredClaims] = useState<Claim[]>([]);
 
   useEffect(() => {
     loadData();
   }, [filter, projectFilter]);
+
+  useEffect(() => {
+    filterClaims();
+  }, [searchQuery, claims]);
 
   const loadData = async () => {
     try {
@@ -42,6 +49,24 @@ export default function AdminClaimsPage() {
       setError(err.response?.data?.detail || 'Failed to load claims');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const filterClaims = () => {
+    if (searchQuery.trim() === '') {
+      setFilteredClaims(claims);
+    } else {
+      const query = searchQuery.toLowerCase();
+      setFilteredClaims(
+        claims.filter(
+          (c) =>
+            c.merchant_name.toLowerCase().includes(query) ||
+            c.user_name?.toLowerCase().includes(query) ||
+            c.project_name?.toLowerCase().includes(query) ||
+            c.category.toLowerCase().includes(query) ||
+            c.description?.toLowerCase().includes(query)
+        )
+      );
     }
   };
 
@@ -98,7 +123,6 @@ export default function AdminClaimsPage() {
       <Sidebar />
       <main className="flex-1 p-4 md:p-8 md:ml-[240px]">
         <div className="max-w-[1200px] mx-auto">
-          {/* Header */}
           <div className="mb-6 md:mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
             <div>
               <h1 className="text-xl md:text-[24px] font-display font-bold text-text-primary">
@@ -113,50 +137,59 @@ export default function AdminClaimsPage() {
             </Button>
           </div>
 
-          {/* Filters */}
-          <div className="mb-4 md:mb-6 flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="px-4 py-2 bg-bg-surface border border-border-default rounded-radius-md"
-            >
-              <option value="">Semua Status</option>
-              <option value="draft">Draft</option>
-              <option value="submitted">Submitted</option>
-              <option value="revision">Revision</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-            </select>
-            <select
-              value={projectFilter || ''}
-              onChange={(e) => setProjectFilter(e.target.value ? parseInt(e.target.value) : undefined)}
-              className="px-4 py-2 bg-bg-surface border border-border-default rounded-radius-md"
-            >
-              <option value="">Semua Project</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-            <div className="flex items-center gap-2">
+          <div className="mb-4 md:mb-6 space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
               <input
-                type="date"
-                value={exportStartDate}
-                onChange={(e) => setExportStartDate(e.target.value)}
-                className="px-4 py-2 bg-bg-surface border border-border-default rounded-radius-md text-sm"
-                placeholder="Tanggal mulai"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari merchant, user, project, kategori..."
+                className="w-full pl-10 pr-4 py-2 bg-bg-surface border border-border-default rounded-radius-md text-sm"
               />
-              <span className="text-text-muted">-</span>
-              <input
-                type="date"
-                value={exportEndDate}
-                onChange={(e) => setExportEndDate(e.target.value)}
-                className="px-4 py-2 bg-bg-surface border border-border-default rounded-radius-md text-sm"
-                placeholder="Tanggal akhir"
-              />
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
+              <select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="px-4 py-2 bg-bg-surface border border-border-default rounded-radius-md"
+              >
+                <option value="">Semua Status</option>
+                <option value="draft">Draft</option>
+                <option value="submitted">Submitted</option>
+                <option value="revision">Revision</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+              <select
+                value={projectFilter || ''}
+                onChange={(e) => setProjectFilter(e.target.value ? parseInt(e.target.value) : undefined)}
+                className="px-4 py-2 bg-bg-surface border border-border-default rounded-radius-md"
+              >
+                <option value="">Semua Project</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={exportStartDate}
+                  onChange={(e) => setExportStartDate(e.target.value)}
+                  className="px-4 py-2 bg-bg-surface border border-border-default rounded-radius-md text-sm"
+                />
+                <span className="text-text-muted">-</span>
+                <input
+                  type="date"
+                  value={exportEndDate}
+                  onChange={(e) => setExportEndDate(e.target.value)}
+                  className="px-4 py-2 bg-bg-surface border border-border-default rounded-radius-md text-sm"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Claims List */}
           {loading ? (
             <div className="bg-bg-surface border border-border-default rounded-radius-lg p-8 text-center">
               <p className="text-text-secondary">Memuat klaim...</p>
@@ -164,26 +197,19 @@ export default function AdminClaimsPage() {
           ) : error ? (
             <div className="bg-bg-surface border border-border-default rounded-radius-lg p-8 text-center">
               <p className="text-danger">{error}</p>
-              <Button onClick={loadData} className="mt-4">
-                Coba Lagi
-              </Button>
+              <Button onClick={loadData} className="mt-4">Coba Lagi</Button>
             </div>
-          ) : claims.length === 0 ? (
+          ) : filteredClaims.length === 0 ? (
             <div className="bg-bg-surface border border-border-default rounded-radius-lg p-8 text-center">
               <p className="text-text-secondary">Tidak ada klaim ditemukan</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {claims.map((claim) => (
-                <div
-                  key={claim.id}
-                  className="bg-bg-surface border border-border-default rounded-radius-lg p-6"
-                >
+              {filteredClaims.map((claim) => (
+                <div key={claim.id} className="bg-bg-surface border border-border-default rounded-radius-lg p-6">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="text-lg font-medium text-text-primary">
-                        {claim.merchant_name}
-                      </h3>
+                      <h3 className="text-lg font-medium text-text-primary">{claim.merchant_name}</h3>
                       <p className="text-text-secondary text-sm mt-1">
                         {claim.user_name} • {claim.project_name || `Project #${claim.project_id}`}
                       </p>
@@ -194,9 +220,7 @@ export default function AdminClaimsPage() {
                   <div className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 text-sm">
                     <div>
                       <span className="text-text-muted">Jumlah</span>
-                      <p className="font-medium text-text-primary">
-                        {formatCurrency(claim.amount)}
-                      </p>
+                      <p className="font-medium text-text-primary">{formatCurrency(claim.amount)}</p>
                     </div>
                     <div>
                       <span className="text-text-muted">Kategori</span>
@@ -204,29 +228,22 @@ export default function AdminClaimsPage() {
                     </div>
                     <div>
                       <span className="text-text-muted">Tanggal</span>
-                      <p className="font-medium text-text-primary">
-                        {formatDate(claim.transaction_date)}
-                      </p>
+                      <p className="font-medium text-text-primary">{formatDate(claim.transaction_date)}</p>
                     </div>
                     <div>
                       <span className="text-text-muted">Reviewer</span>
-                      <p className="font-medium text-text-primary">
-                        {claim.reviewer_name || '-'}
-                      </p>
+                      <p className="font-medium text-text-primary">{claim.reviewer_name || '-'}</p>
                     </div>
                     <div>
                       <span className="text-text-muted">Dibuat</span>
-                      <p className="font-medium text-text-primary">
-                        {formatDate(claim.created_at)}
-                      </p>
+                      <p className="font-medium text-text-primary">{formatDate(claim.created_at)}</p>
                     </div>
                   </div>
 
                   {claim.notes && (
                     <div className="mt-4 p-3 bg-bg-subtle rounded-radius-md">
                       <p className="text-sm text-text-secondary">
-                        <span className="font-medium">Catatan: </span>
-                        {claim.notes}
+                        <span className="font-medium">Catatan: </span>{claim.notes}
                       </p>
                     </div>
                   )}
@@ -234,41 +251,18 @@ export default function AdminClaimsPage() {
                   <div className="mt-4 pt-4 border-t border-border-default flex flex-wrap justify-end gap-2">
                     {claim.status === 'submitted' && (
                       <>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => {
-                            setActionClaim(claim);
-                            setActionType('revision');
-                          }}
-                        >
+                        <Button variant="secondary" size="sm" onClick={() => { setActionClaim(claim); setActionType('revision'); }}>
                           Minta Revisi
                         </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="text-danger"
-                          onClick={() => {
-                            setActionClaim(claim);
-                            setActionType('reject');
-                          }}
-                        >
+                        <Button variant="secondary" size="sm" className="text-danger" onClick={() => { setActionClaim(claim); setActionType('reject'); }}>
                           Tolak
                         </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            setActionClaim(claim);
-                            setActionType('approve');
-                          }}
-                        >
+                        <Button size="sm" onClick={() => { setActionClaim(claim); setActionType('approve'); }}>
                           Approve
                         </Button>
                       </>
                     )}
-                    <Button variant="secondary" size="sm">
-                      Detail
-                    </Button>
+                    <Button variant="secondary" size="sm">Detail</Button>
                   </div>
                 </div>
               ))}
@@ -277,23 +271,18 @@ export default function AdminClaimsPage() {
         </div>
       </main>
 
-      {/* Action Modal */}
       {actionClaim && actionType && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[500px]">
             <h2 className="text-lg font-semibold text-text-primary mb-4">
-              {actionType === 'approve' ? 'Approve Klaim' :
-               actionType === 'reject' ? 'Tolak Klaim' :
-               'Minta Revisi Klaim'}
+              {actionType === 'approve' ? 'Approve Klaim' : actionType === 'reject' ? 'Tolak Klaim' : 'Minta Revisi Klaim'}
             </h2>
             <div className="mb-4 p-4 bg-bg-subtle rounded-radius-md">
               <p className="font-medium">{actionClaim.merchant_name}</p>
               <p className="text-text-secondary">{formatCurrency(actionClaim.amount)}</p>
             </div>
             <div className="mb-6">
-              <label className="block text-sm font-medium text-text-primary mb-2">
-                Catatan (Opsional)
-              </label>
+              <label className="block text-sm font-medium text-text-primary mb-2">Catatan (Opsional)</label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -303,23 +292,11 @@ export default function AdminClaimsPage() {
               />
             </div>
             <div className="flex justify-end gap-4">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setActionClaim(null);
-                  setActionType(null);
-                  setNotes('');
-                }}
-              >
+              <Button variant="secondary" onClick={() => { setActionClaim(null); setActionType(null); setNotes(''); }}>
                 Batal
               </Button>
-              <Button
-                onClick={handleAction}
-                isLoading={submitting}
-                className={actionType === 'reject' ? '!bg-danger hover:!bg-danger/90' : ''}
-              >
-                {actionType === 'approve' ? 'Approve' :
-                 actionType === 'reject' ? 'Tolak' : 'Minta Revisi'}
+              <Button onClick={handleAction} isLoading={submitting} className={actionType === 'reject' ? '!bg-danger hover:!bg-danger/90' : ''}>
+                {actionType === 'approve' ? 'Approve' : actionType === 'reject' ? 'Tolak' : 'Minta Revisi'}
               </Button>
             </div>
           </div>

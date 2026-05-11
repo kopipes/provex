@@ -17,6 +17,7 @@ import {
   LogOut,
   Menu,
   X,
+  Settings,
 } from 'lucide-react';
 
 export function Sidebar() {
@@ -55,7 +56,7 @@ export function Sidebar() {
     { href: '/admin/users', icon: Users, label: 'Pengguna', show: isManagerOrAdmin },
     { separator: true, show: isAdmin },
     { href: '/admin/projects', icon: FolderOpen, label: 'Manajemen Project', show: isAdmin },
-    { href: '/admin/settings/ai', icon: ScanLine, label: 'Pengaturan AI', show: isAdmin },
+    { href: '/admin/settings', icon: Settings, label: 'Pengaturan', show: isAdmin },
     { href: '/admin/audit-log', icon: Activity, label: 'Audit Log', show: isAdmin },
   ].filter((item) => item.show);
 

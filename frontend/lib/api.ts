@@ -38,6 +38,8 @@ export const authAPI = {
 export const usersAPI = {
   list: () => api.get<User[]>('/users'),
   get: (id: number) => api.get<User>(`/users/${id}`),
+  create: (data: { name: string; email: string; password: string; department?: string; role?: string }) =>
+    api.post<User>('/users', data),
   update: (id: number, data: { name?: string; department?: string }) =>
     api.put<User>(`/users/${id}`, data),
   updateStatus: (id: number, status: string) =>
@@ -148,6 +150,16 @@ export const uploadAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+};
+
+// Database API
+export const databaseAPI = {
+  createBackup: () => api.post<{ success: boolean; message: string; filename: string }>('/database/backup'),
+  listBackups: () => api.get<{ backups: Array<{ filename: string; size: number; created_at: string }> }>('/database/backups'),
+  downloadBackup: (filename: string) =>
+    api.get(`/database/backups/${filename}`, { responseType: 'blob' }),
+  restoreBackup: (filename: string) => api.post<{ success: boolean; message: string }>(`/database/restore/${filename}`),
+  deleteBackup: (filename: string) => api.delete(`/database/backups/${filename}`),
 };
 
 export default api;

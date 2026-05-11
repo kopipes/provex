@@ -2,11 +2,42 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User, ProjectMember
-from app.schemas import UserResponse, UserUpdate, UserStatusUpdate, UserRoleUpdate
-from app.auth import get_current_user, require_manager_or_admin, require_admin
+from app.schemas import UserResponse, UserUpdate, UserStatusUpdate, UserRoleUpdate, UserCreate
+from app.auth import get_current_user, require_manager_or_admin, require_admin, get_password_hash
 from typing import List
 
 router = APIRouter(prefix="/users", tags=["Users"])
+
+
+@router.post("", response_model=UserResponse)
+def create_user(
+    user_data: UserCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Create a new user (admin only)"""
+    # Check if email already exists
+    existing_user = db.query(User).filter(User.email == user_data.email).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    
+    # Create new user
+    new_user = User(
+        name=user_data.name,
+        email=user_data.email,
+        password_hash=get_password_hash(user_data.password),
+        department=user_data.department,
+        role=user_data.role.value if user_data.role else "user",
+        status="active"
+    )
+    
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
 
 
 @router.get("", response_model=List[UserResponse])

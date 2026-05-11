@@ -8,6 +8,7 @@ import { Button } from '@/components/Button';
 import { formatDate } from '@/lib/utils';
 import { usersAPI } from '@/lib/api';
 import type { User } from '@/lib/types';
+import { UserPlus } from 'lucide-react';
 
 export default function AdminUsersPage() {
   const { user } = useAuth();
@@ -100,7 +101,7 @@ export default function AdminUsersPage() {
   return (
     <div className="flex min-h-screen bg-bg-base">
       <Sidebar />
-      <main className="flex-1 w-full p-4 md:p-8 md:ml-[240px]">
+      <main className="flex-1 p-4 md:p-8 md:ml-[240px]">
         <div className="max-w-[1200px] mx-auto">
           <div className="mb-6 md:mb-8">
             <h1 className="text-xl md:text-[24px] font-display font-bold text-text-primary">
@@ -123,161 +124,92 @@ export default function AdminUsersPage() {
               </Button>
             </div>
           ) : (
-            <>
-              {/* Desktop Table View - hidden on mobile */}
-              <div className="hidden md:block bg-bg-surface border border-border-default rounded-radius-lg overflow-x-auto">
-                <table className="w-full min-w-[800px]">
-                  <thead className="bg-bg-subtle">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-text-primary whitespace-nowrap">Nama</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-text-primary whitespace-nowrap">Email</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-text-primary whitespace-nowrap">Dept</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-text-primary whitespace-nowrap">Role</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-text-primary whitespace-nowrap">Status</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-text-primary whitespace-nowrap">Bergabung</th>
-                      <th className="px-4 py-3 text-right text-sm font-medium text-text-primary whitespace-nowrap">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border-default">
-                    {users.map((u) => (
-                      <tr key={u.id} className="hover:bg-bg-subtle/50">
-                        <td className="px-4 py-3">
-                          <span className="font-medium text-text-primary text-sm">{u.name}</span>
-                        </td>
-                        <td className="px-4 py-3 text-text-secondary text-sm max-w-[150px] truncate">{u.email}</td>
-                        <td className="px-4 py-3 text-text-secondary text-sm">{u.department || '-'}</td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-0.5 rounded-radius-sm text-xs font-medium ${
-                            u.role === 'admin' ? 'bg-accent/20 text-accent' :
-                            u.role === 'manager' ? 'bg-warning/20 text-warning' :
-                            'bg-bg-subtle text-text-secondary'
-                          }`}>
-                            {u.role}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <StatusBadge status={u.status} />
-                        </td>
-                        <td className="px-4 py-3 text-text-secondary text-sm whitespace-nowrap">
-                          {formatDate(u.created_at)}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => handleEditUser(u)}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => {
-                                setActionUser(u);
-                                setActionType('status');
-                                setNewStatus(u.status);
-                              }}
-                            >
-                              Status
-                            </Button>
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => {
-                                setActionUser(u);
-                                setActionType('role');
-                                setNewRole(u.role);
-                              }}
-                            >
-                              Role
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile Card View - shown on mobile */}
-              <div className="md:hidden space-y-3">
-                {users.map((u) => (
-                  <div key={u.id} className="bg-bg-surface border border-border-default rounded-radius-lg p-4">
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-3">
+            <div className="space-y-4">
+              {users.map((u) => (
+                <div key={u.id} className="bg-bg-surface border border-border-default rounded-radius-lg p-4 md:p-5">
+                  {/* Header */}
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 md:w-12 md:h-12 bg-accent rounded-full flex items-center justify-center text-white font-medium text-sm md:text-base">
+                        {u.name.charAt(0).toUpperCase()}
+                      </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-text-primary truncate">{u.name}</h3>
-                        <p className="text-xs text-text-secondary truncate">{u.email}</p>
+                        <p className="text-xs md:text-sm text-text-secondary truncate">{u.email}</p>
                       </div>
+                    </div>
+                    <div className="flex items-center gap-2">
                       <StatusBadge status={u.status} />
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                      <div className="bg-bg-subtle rounded p-2">
-                        <span className="text-text-muted block">Dept</span>
-                        <span className="text-text-primary font-medium">{u.department || '-'}</span>
-                      </div>
-                      <div className="bg-bg-subtle rounded p-2">
-                        <span className="text-text-muted block">Role</span>
-                        <span className={`inline-block px-1.5 py-0.5 rounded-radius-sm text-xs font-medium ${
-                          u.role === 'admin' ? 'bg-accent/20 text-accent' :
-                          u.role === 'manager' ? 'bg-warning/20 text-warning' :
-                          'bg-bg-surface text-text-secondary'
-                        }`}>
-                          {u.role}
-                        </span>
-                      </div>
-                      <div className="bg-bg-subtle rounded p-2">
-                        <span className="text-text-muted block">Bergabung</span>
-                        <span className="text-text-primary font-medium">{formatDate(u.created_at)}</span>
-                      </div>
-                    </div>
+                  </div>
 
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleEditUser(u)}
-                        className="flex-1"
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          setActionUser(u);
-                          setActionType('status');
-                          setNewStatus(u.status);
-                        }}
-                        className="flex-1"
-                      >
-                        Status
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          setActionUser(u);
-                          setActionType('role');
-                          setNewRole(u.role);
-                        }}
-                        className="flex-1"
-                      >
-                        Role
-                      </Button>
+                  {/* Info Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4 text-sm">
+                    <div className="bg-bg-subtle rounded-lg p-3">
+                      <span className="text-text-muted text-xs block">Departemen</span>
+                      <span className="text-text-primary font-medium">{u.department || '-'}</span>
+                    </div>
+                    <div className="bg-bg-subtle rounded-lg p-3">
+                      <span className="text-text-muted text-xs block">Role</span>
+                      <span className={`inline-block px-2 py-0.5 rounded-radius-sm text-xs font-medium ${
+                        u.role === 'admin' ? 'bg-accent/20 text-accent' :
+                        u.role === 'manager' ? 'bg-warning/20 text-warning' :
+                        'bg-bg-surface text-text-secondary'
+                      }`}>
+                        {u.role}
+                      </span>
+                    </div>
+                    <div className="bg-bg-subtle rounded-lg p-3 col-span-2 md:col-span-1">
+                      <span className="text-text-muted text-xs block">Bergabung</span>
+                      <span className="text-text-primary font-medium">{formatDate(u.created_at)}</span>
                     </div>
                   </div>
-                ))}
-              </div>
-            </>
+
+                  {/* Actions */}
+                  <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-border-default">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleEditUser(u)}
+                      className="flex-1"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setActionUser(u);
+                        setActionType('status');
+                        setNewStatus(u.status);
+                      }}
+                      className="flex-1"
+                    >
+                      Status
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setActionUser(u);
+                        setActionType('role');
+                        setNewRole(u.role);
+                      }}
+                      className="flex-1"
+                    >
+                      Role
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </main>
 
       {actionUser && actionType === 'status' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[400px] my-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[400px]">
             <h2 className="text-lg font-semibold text-text-primary mb-4">
               Update Status User
             </h2>
@@ -306,8 +238,8 @@ export default function AdminUsersPage() {
       )}
 
       {actionUser && actionType === 'role' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[400px] my-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[400px]">
             <h2 className="text-lg font-semibold text-text-primary mb-4">
               Update Role User
             </h2>
@@ -336,8 +268,8 @@ export default function AdminUsersPage() {
       )}
 
       {actionUser && actionType === 'edit' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[400px] my-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[400px]">
             <h2 className="text-lg font-semibold text-text-primary mb-4">
               Edit User
             </h2>

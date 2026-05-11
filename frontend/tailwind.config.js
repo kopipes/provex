@@ -21,9 +21,9 @@ module.exports = {
         },
         text: {
           primary: '#4a4540',
-          secondary: '#7a746d',
-          muted: '#a9a299',
-          inverse: '#ffffff',
+          secondary: '#6a5a50',
+          muted: '#8a7a70',
+          inverse: '#4a4540',
           link: '#8b6f5a',
         },
         accent: {

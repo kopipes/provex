@@ -5,7 +5,6 @@ import { useAuth } from '@/lib/auth';
 import { Sidebar } from '@/components/Sidebar';
 import { StatusBadge } from '@/components/Badge';
 import { Button } from '@/components/Button';
-import { Input } from '@/components/Input';
 import { formatDate } from '@/lib/utils';
 import { usersAPI } from '@/lib/api';
 import type { User } from '@/lib/types';
@@ -101,10 +100,10 @@ export default function AdminUsersPage() {
   return (
     <div className="flex min-h-screen bg-bg-base">
       <Sidebar />
-      <main className="flex-1 p-8">
+      <main className="flex-1 w-full p-4 md:p-8 md:ml-[240px]">
         <div className="max-w-[1200px] mx-auto">
-          <div className="mb-8">
-            <h1 className="text-[24px] font-display font-bold text-text-primary">
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-xl md:text-[24px] font-display font-bold text-text-primary">
               Kelola Pengguna
             </h1>
             <p className="text-text-secondary text-sm mt-1">
@@ -124,87 +123,161 @@ export default function AdminUsersPage() {
               </Button>
             </div>
           ) : (
-            <div className="bg-bg-surface border border-border-default rounded-radius-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-bg-subtle">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-text-primary">Nama</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-text-primary">Email</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-text-primary">Dept</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-text-primary">Role</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-text-primary">Status</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-text-primary">Bergabung</th>
-                    <th className="px-6 py-4 text-right text-sm font-medium text-text-primary">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border-default">
-                  {users.map((u) => (
-                    <tr key={u.id} className="hover:bg-bg-subtle/50">
-                      <td className="px-6 py-4">
-                        <span className="font-medium text-text-primary">{u.name}</span>
-                      </td>
-                      <td className="px-6 py-4 text-text-secondary">{u.email}</td>
-                      <td className="px-6 py-4 text-text-secondary">{u.department || '-'}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2 py-1 rounded-radius-sm text-xs font-medium ${
+            <>
+              {/* Desktop Table View - hidden on mobile */}
+              <div className="hidden md:block bg-bg-surface border border-border-default rounded-radius-lg overflow-x-auto">
+                <table className="w-full min-w-[800px]">
+                  <thead className="bg-bg-subtle">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-text-primary whitespace-nowrap">Nama</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-text-primary whitespace-nowrap">Email</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-text-primary whitespace-nowrap">Dept</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-text-primary whitespace-nowrap">Role</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-text-primary whitespace-nowrap">Status</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-text-primary whitespace-nowrap">Bergabung</th>
+                      <th className="px-4 py-3 text-right text-sm font-medium text-text-primary whitespace-nowrap">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border-default">
+                    {users.map((u) => (
+                      <tr key={u.id} className="hover:bg-bg-subtle/50">
+                        <td className="px-4 py-3">
+                          <span className="font-medium text-text-primary text-sm">{u.name}</span>
+                        </td>
+                        <td className="px-4 py-3 text-text-secondary text-sm max-w-[150px] truncate">{u.email}</td>
+                        <td className="px-4 py-3 text-text-secondary text-sm">{u.department || '-'}</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-0.5 rounded-radius-sm text-xs font-medium ${
+                            u.role === 'admin' ? 'bg-accent/20 text-accent' :
+                            u.role === 'manager' ? 'bg-warning/20 text-warning' :
+                            'bg-bg-subtle text-text-secondary'
+                          }`}>
+                            {u.role}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusBadge status={u.status} />
+                        </td>
+                        <td className="px-4 py-3 text-text-secondary text-sm whitespace-nowrap">
+                          {formatDate(u.created_at)}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => handleEditUser(u)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => {
+                                setActionUser(u);
+                                setActionType('status');
+                                setNewStatus(u.status);
+                              }}
+                            >
+                              Status
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => {
+                                setActionUser(u);
+                                setActionType('role');
+                                setNewRole(u.role);
+                              }}
+                            >
+                              Role
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View - shown on mobile */}
+              <div className="md:hidden space-y-3">
+                {users.map((u) => (
+                  <div key={u.id} className="bg-bg-surface border border-border-default rounded-radius-lg p-4">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-text-primary truncate">{u.name}</h3>
+                        <p className="text-xs text-text-secondary truncate">{u.email}</p>
+                      </div>
+                      <StatusBadge status={u.status} />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                      <div className="bg-bg-subtle rounded p-2">
+                        <span className="text-text-muted block">Dept</span>
+                        <span className="text-text-primary font-medium">{u.department || '-'}</span>
+                      </div>
+                      <div className="bg-bg-subtle rounded p-2">
+                        <span className="text-text-muted block">Role</span>
+                        <span className={`inline-block px-1.5 py-0.5 rounded-radius-sm text-xs font-medium ${
                           u.role === 'admin' ? 'bg-accent/20 text-accent' :
                           u.role === 'manager' ? 'bg-warning/20 text-warning' :
-                          'bg-bg-subtle text-text-secondary'
+                          'bg-bg-surface text-text-secondary'
                         }`}>
                           {u.role}
                         </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <StatusBadge status={u.status} />
-                      </td>
-                      <td className="px-6 py-4 text-text-secondary text-sm">
-                        {formatDate(u.created_at)}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleEditUser(u)}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => {
-                              setActionUser(u);
-                              setActionType('status');
-                              setNewStatus(u.status);
-                            }}
-                          >
-                            Status
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => {
-                              setActionUser(u);
-                              setActionType('role');
-                              setNewRole(u.role);
-                            }}
-                          >
-                            Role
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                      <div className="bg-bg-subtle rounded p-2">
+                        <span className="text-text-muted block">Bergabung</span>
+                        <span className="text-text-primary font-medium">{formatDate(u.created_at)}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleEditUser(u)}
+                        className="flex-1"
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setActionUser(u);
+                          setActionType('status');
+                          setNewStatus(u.status);
+                        }}
+                        className="flex-1"
+                      >
+                        Status
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setActionUser(u);
+                          setActionType('role');
+                          setNewRole(u.role);
+                        }}
+                        className="flex-1"
+                      >
+                        Role
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </main>
 
       {actionUser && actionType === 'status' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[400px]">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[400px] my-auto">
             <h2 className="text-lg font-semibold text-text-primary mb-4">
               Update Status User
             </h2>
@@ -220,11 +293,11 @@ export default function AdminUsersPage() {
                 <option value="inactive">Inactive</option>
               </select>
             </div>
-            <div className="flex justify-end gap-4">
-              <Button variant="secondary" onClick={() => setActionUser(null)}>
+            <div className="flex flex-col sm:flex-row justify-end gap-2">
+              <Button variant="secondary" onClick={() => setActionUser(null)} className="w-full sm:w-auto">
                 Batal
               </Button>
-              <Button onClick={handleUpdateStatus} isLoading={submitting}>
+              <Button onClick={handleUpdateStatus} isLoading={submitting} className="w-full sm:w-auto">
                 Simpan
               </Button>
             </div>
@@ -233,8 +306,8 @@ export default function AdminUsersPage() {
       )}
 
       {actionUser && actionType === 'role' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[400px]">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[400px] my-auto">
             <h2 className="text-lg font-semibold text-text-primary mb-4">
               Update Role User
             </h2>
@@ -250,11 +323,11 @@ export default function AdminUsersPage() {
                 <option value="admin">Admin</option>
               </select>
             </div>
-            <div className="flex justify-end gap-4">
-              <Button variant="secondary" onClick={() => setActionUser(null)}>
+            <div className="flex flex-col sm:flex-row justify-end gap-2">
+              <Button variant="secondary" onClick={() => setActionUser(null)} className="w-full sm:w-auto">
                 Batal
               </Button>
-              <Button onClick={handleUpdateRole} isLoading={submitting}>
+              <Button onClick={handleUpdateRole} isLoading={submitting} className="w-full sm:w-auto">
                 Simpan
               </Button>
             </div>
@@ -263,8 +336,8 @@ export default function AdminUsersPage() {
       )}
 
       {actionUser && actionType === 'edit' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[400px]">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[400px] my-auto">
             <h2 className="text-lg font-semibold text-text-primary mb-4">
               Edit User
             </h2>
@@ -306,11 +379,11 @@ export default function AdminUsersPage() {
                 className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md"
               />
             </div>
-            <div className="flex justify-end gap-4">
-              <Button variant="secondary" onClick={() => setActionUser(null)}>
+            <div className="flex flex-col sm:flex-row justify-end gap-2">
+              <Button variant="secondary" onClick={() => setActionUser(null)} className="w-full sm:w-auto">
                 Batal
               </Button>
-              <Button onClick={handleSaveEdit} isLoading={submitting}>
+              <Button onClick={handleSaveEdit} isLoading={submitting} className="w-full sm:w-auto">
                 Simpan
               </Button>
             </div>

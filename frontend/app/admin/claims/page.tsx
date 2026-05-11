@@ -96,25 +96,25 @@ export default function AdminClaimsPage() {
   return (
     <div className="flex min-h-screen bg-bg-base">
       <Sidebar />
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-4 md:p-8 md:ml-[240px]">
         <div className="max-w-[1200px] mx-auto">
           {/* Header */}
-          <div className="mb-8 flex justify-between items-start">
+          <div className="mb-6 md:mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
             <div>
-              <h1 className="text-[24px] font-display font-bold text-text-primary">
+              <h1 className="text-xl md:text-[24px] font-display font-bold text-text-primary">
                 Semua Klaim
               </h1>
               <p className="text-text-secondary text-sm mt-1">
                 Review dan kelola semua klaim
               </p>
             </div>
-            <Button variant="secondary" onClick={handleExport}>
+            <Button variant="secondary" onClick={handleExport} className="w-full sm:w-auto">
               Export CSV
             </Button>
           </div>
 
           {/* Filters */}
-          <div className="mb-6 flex gap-4 flex-wrap items-center">
+          <div className="mb-4 md:mb-6 flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
@@ -191,7 +191,7 @@ export default function AdminClaimsPage() {
                     <StatusBadge status={claim.status} />
                   </div>
 
-                  <div className="mt-4 grid grid-cols-5 gap-4 text-sm">
+                  <div className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 text-sm">
                     <div>
                       <span className="text-text-muted">Jumlah</span>
                       <p className="font-medium text-text-primary">
@@ -231,7 +231,7 @@ export default function AdminClaimsPage() {
                     </div>
                   )}
 
-                  <div className="mt-4 pt-4 border-t border-border-default flex justify-end gap-2">
+                  <div className="mt-4 pt-4 border-t border-border-default flex flex-wrap justify-end gap-2">
                     {claim.status === 'submitted' && (
                       <>
                         <Button

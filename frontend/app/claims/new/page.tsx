@@ -100,7 +100,7 @@ export default function NewClaimPage() {
   return (
     <div className="flex min-h-screen bg-bg-base">
       <Sidebar />
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-8 md:ml-[240px]">
         <div className="max-w-[700px] mx-auto">
           {/* Header */}
           <div className="mb-8">

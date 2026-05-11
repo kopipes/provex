@@ -5,50 +5,50 @@
 @tailwind utilities;
 
 :root {
-  /* Background */
-  --color-bg-base: #FAFBFC;
-  --color-bg-surface: #FFFFFF;
-  --color-bg-subtle: #F4F6F8;
-  --color-bg-inverse: #4338CA;
-  --color-bg-card: #FFFFFF;
+  /* Background - Warm earthy palette */
+  --color-bg-base: #fbfefb;
+  --color-bg-surface: #ffffff;
+  --color-bg-subtle: #efe5dc;
+  --color-bg-inverse: #d0b8ac;
+  --color-bg-card: #ffffff;
   
   /* Border */
-  --color-border-default: #E5E7EB;
-  --color-border-strong: #D1D5DB;
-  --color-border-focus: #6366F1;
+  --color-border-default: #e5ddd5;
+  --color-border-strong: #d0c8bf;
+  --color-border-focus: #c9a88a;
   
   /* Text */
-  --color-text-primary: #111827;
-  --color-text-secondary: #4B5563;
-  --color-text-muted: #9CA3AF;
-  --color-text-inverse: #FFFFFF;
-  --color-text-link: #6366F1;
+  --color-text-primary: #4a4540;
+  --color-text-secondary: #7a746d;
+  --color-text-muted: #a9a299;
+  --color-text-inverse: #ffffff;
+  --color-text-link: #8b6f5a;
   
-  /* Accent - Indigo */
-  --color-accent: #6366F1;
-  --color-accent-hover: #4F46E5;
-  --color-accent-subtle: #EEF2FF;
-  --color-accent-text: #4338CA;
+  /* Accent - Warm tan */
+  --color-accent: #c9a88a;
+  --color-accent-hover: #b89570;
+  --color-accent-subtle: #f3d8c7;
+  --color-accent-text: #8b6f5a;
   
-  /* Success - Green */
-  --color-success: #10B981;
-  --color-success-subtle: #D1FAE5;
-  --color-success-text: #059669;
+  /* Success - Earthy green */
+  --color-success: #7d9a6f;
+  --color-success-subtle: #e8f0e5;
+  --color-success-text: #4a6340;
   
-  /* Warning - Amber */
-  --color-warning: #F59E0B;
-  --color-warning-subtle: #FEF3C7;
-  --color-warning-text: #D97706;
+  /* Warning - Warm amber */
+  --color-warning: #c9a04a;
+  --color-warning-subtle: #f5f0e0;
+  --color-warning-text: #7a6020;
   
-  /* Danger - Red */
-  --color-danger: #EF4444;
-  --color-danger-subtle: #FEE2E2;
-  --color-danger-text: #DC2626;
+  /* Danger - Soft red */
+  --color-danger: #c47a7a;
+  --color-danger-subtle: #f8e8e8;
+  --color-danger-text: #8a4a4a;
   
-  /* Neutral - Gray */
-  --color-neutral: #6B7280;
-  --color-neutral-subtle: #F3F4F6;
-  --color-neutral-text: #374151;
+  /* Neutral - Warm gray */
+  --color-neutral: #8a847a;
+  --color-neutral-subtle: #f0ebe5;
+  --color-neutral-text: #5a544d;
 }
 
 * {
@@ -77,7 +77,7 @@ a {
 
 :focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 0 0 3px rgba(201, 168, 138, 0.4);
 }
 
 /* Smooth transitions */

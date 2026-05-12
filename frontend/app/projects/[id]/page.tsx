@@ -10,6 +10,7 @@ import { Button } from '@/components/Button';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { projectsAPI, claimsAPI } from '@/lib/api';
 import type { Project, Claim } from '@/lib/types';
+import { Eye, X } from 'lucide-react';
 
 export default function ProjectDetailPage() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function ProjectDetailPage() {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
 
   useEffect(() => {
     loadData();
@@ -158,11 +160,18 @@ export default function ProjectDetailPage() {
                           {claim.user_name} • {formatDate(claim.transaction_date)}
                         </p>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right flex items-center gap-2">
                         <p className="font-semibold text-text-primary">
                           {formatCurrency(claim.amount)}
                         </p>
                         <StatusBadge status={claim.status} />
+                        <Button 
+                          variant="secondary" 
+                          size="sm"
+                          onClick={() => setSelectedClaim(claim)}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -172,6 +181,92 @@ export default function ProjectDetailPage() {
           </div>
         </div>
       </main>
+
+      {/* Claim Detail Modal */}
+      {selectedClaim && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-bg-surface rounded-radius-lg w-full max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-bg-surface border-b border-border-default p-4 flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-text-primary">Detail Klaim</h2>
+              <button onClick={() => setSelectedClaim(null)} className="text-text-muted hover:text-text-primary">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-xl font-medium text-text-primary">{selectedClaim.merchant_name}</h3>
+                  <p className="text-text-secondary text-sm mt-1">
+                    {selectedClaim.user_name} • {selectedClaim.project_name || `Project #${selectedClaim.project_id}`}
+                  </p>
+                </div>
+                <StatusBadge status={selectedClaim.status} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="bg-bg-subtle rounded-lg p-3">
+                  <span className="text-text-muted text-xs block">Jumlah</span>
+                  <span className="font-medium text-text-primary">{formatCurrency(selectedClaim.amount)}</span>
+                </div>
+                <div className="bg-bg-subtle rounded-lg p-3">
+                  <span className="text-text-muted text-xs block">Kategori</span>
+                  <span className="font-medium text-text-primary">{selectedClaim.category}</span>
+                </div>
+                <div className="bg-bg-subtle rounded-lg p-3">
+                  <span className="text-text-muted text-xs block">Tanggal Transaksi</span>
+                  <span className="font-medium text-text-primary">{formatDate(selectedClaim.transaction_date)}</span>
+                </div>
+                <div className="bg-bg-subtle rounded-lg p-3">
+                  <span className="text-text-muted text-xs block">No. Kwitansi</span>
+                  <span className="font-medium text-text-primary">{selectedClaim.receipt_number || '-'}</span>
+                </div>
+              </div>
+
+              {selectedClaim.description && (
+                <div>
+                  <span className="text-text-muted text-sm block mb-1">Deskripsi</span>
+                  <p className="text-text-primary bg-bg-subtle rounded-lg p-3">{selectedClaim.description}</p>
+                </div>
+              )}
+
+              {selectedClaim.receipt_image_path && (
+                <div>
+                  <span className="text-text-muted text-sm block mb-2">Bukti Kwitansi</span>
+                  <img
+                    src={`http://localhost:8000${selectedClaim.receipt_image_path}`}
+                    alt="Receipt"
+                    className="max-w-full rounded-lg border border-border-default"
+                  />
+                </div>
+              )}
+
+              {selectedClaim.notes && (
+                <div className="bg-warning/10 border border-warning/30 rounded-radius-md p-3">
+                  <span className="text-warning text-sm font-medium block mb-1">Catatan</span>
+                  <p className="text-text-primary">{selectedClaim.notes}</p>
+                </div>
+              )}
+
+              {selectedClaim.reviewer_name && (
+                <div className="bg-bg-subtle rounded-lg p-3">
+                  <span className="text-text-muted text-xs block">Ditinjau oleh</span>
+                  <span className="font-medium text-text-primary">{selectedClaim.reviewer_name}</span>
+                  {selectedClaim.reviewed_at && (
+                    <span className="text-text-secondary text-xs block">{formatDate(selectedClaim.reviewed_at)}</span>
+                  )}
+                </div>
+              )}
+
+              <div className="text-xs text-text-muted text-center pt-4 border-t border-border-default">
+                Dibuat: {formatDate(selectedClaim.created_at)}
+                {selectedClaim.updated_at !== selectedClaim.created_at && (
+                  <> • Diupdate: {formatDate(selectedClaim.updated_at)}</>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -85,6 +85,7 @@ class AIConfig(Base):
     base_url = Column(String(500), nullable=True)
     model_name = Column(String(255), nullable=True)
     api_key_encrypted = Column(Text, nullable=True)
+    ocr_enabled = Column(Boolean, default=True)
     updated_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     updated_at = Column(DateTime(timezone=True), nullable=True)
 

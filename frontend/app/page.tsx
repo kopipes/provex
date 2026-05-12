@@ -30,8 +30,7 @@ export default function LoginPage() {
       <div className="w-full max-w-[400px] bg-bg-surface rounded-radius-lg border border-border-default p-8 animate-fade-in">
         {/* Logo */}
         <div className="text-center mb-8">
-          <img src="/logo.svg" alt="ProvEx" className="w-16 h-16 mx-auto mb-4" />
-          <h1 className="text-[24px] font-display font-bold text-text-primary">ProvEx</h1>
+          <img src="/logo.png" alt="ProvEx" className="w-48 h-auto mx-auto mb-4" />
           <p className="text-text-secondary text-sm mt-1">Masuk ke akun Anda</p>
         </div>
 

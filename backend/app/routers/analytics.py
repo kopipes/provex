@@ -299,16 +299,34 @@ def get_dashboard_summary(
         }
     else:
         # Manager/Admin sees all data
-        total_claims = db.query(Claim).count()
-        total_amount = db.query(func.coalesce(func.sum(Claim.amount), 0)).scalar()
+        # Get all active projects
+        projects = db.query(Project).filter(Project.status == "active").all()
         
-        pending_claims = db.query(Claim).filter(
-            Claim.status.in_(["submitted", "revision"])
-        ).count()
+        # Get recent claims (last 10)
+        recent_claims = db.query(Claim).order_by(Claim.created_at.desc()).limit(10).all()
         
         return {
-            "total_claims": total_claims,
-            "total_amount": float(total_amount),
-            "pending_claims": pending_claims,
-            "active_projects": db.query(Project).filter(Project.status == "active").count()
+            "projects": [
+                {
+                    "id": p.id,
+                    "name": p.name,
+                    "status": p.status,
+                    "claim_count": db.query(Claim).filter(Claim.project_id == p.id).count(),
+                    "total_amount": db.query(func.coalesce(func.sum(Claim.amount), 0)).filter(
+                        Claim.project_id == p.id
+                    ).scalar()
+                }
+                for p in projects
+            ],
+            "recent_claims": [
+                {
+                    "id": c.id,
+                    "merchant_name": c.merchant_name,
+                    "amount": c.amount,
+                    "status": c.status,
+                    "created_at": c.created_at,
+                    "project_name": db.query(Project).filter(Project.id == c.project_id).first().name if db.query(Project).filter(Project.id == c.project_id).first() else None
+                }
+                for c in recent_claims
+            ]
         }

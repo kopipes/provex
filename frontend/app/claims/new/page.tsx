@@ -22,6 +22,7 @@ export default function NewClaimPage() {
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [extractingData, setExtractingData] = useState(false);
+  const [ocrEnabled, setOcrEnabled] = useState(true);
   
   // Step 1: Show upload screen first
   const [hasReceipt, setHasReceipt] = useState(false);
@@ -44,6 +45,7 @@ export default function NewClaimPage() {
 
   useEffect(() => {
     loadProjects();
+    loadOcrSetting();
   }, []);
 
   const loadProjects = async () => {
@@ -54,6 +56,16 @@ export default function NewClaimPage() {
       console.error('Failed to load projects');
     } finally {
       setLoadingProjects(false);
+    }
+  };
+
+  const loadOcrSetting = async () => {
+    try {
+      const response = await aiConfigAPI.getOcrSetting();
+      setOcrEnabled(response.data.ocr_enabled);
+    } catch (err) {
+      console.error('Failed to load OCR setting');
+      setOcrEnabled(true); // Default to enabled
     }
   };
 
@@ -116,63 +128,61 @@ export default function NewClaimPage() {
     
     // Upload file
     setUploadingFile(true);
-    setExtractingData(true);
+    setExtractingData(ocrEnabled);
     try {
       // Upload first
       const uploadResponse = await uploadAPI.uploadReceipt(file);
       setUploadedPath(uploadResponse.data.path);
       
-      // Convert to base64 for OCR
-      const base64 = await fileToBase64(file);
-      
-      // Extract data using AI
-      try {
-        const extractResponse = await aiConfigAPI.extract(base64);
-        if (extractResponse.data.success && extractResponse.data.data) {
-          const data = extractResponse.data.data;
+      // Only extract data if OCR is enabled
+      if (ocrEnabled) {
+        // Convert to base64 for OCR
+        const base64 = await fileToBase64(file);
+        
+        // Try to extract data using AI
+        try {
+          console.log('Calling AI extract endpoint...');
+          const response = await aiConfigAPI.extract(base64);
+          console.log('AI response:', response.data);
           
-          // Auto-fill form with extracted data
-          if (data.merchant_name) {
-            setFormData(prev => ({ ...prev, merchant_name: data.merchant_name }));
+          if (response.data.success && response.data.data) {
+            const extracted = response.data.data;
+            console.log('Extracted data:', extracted);
+            
+            // Update form data with extracted values
+            setFormData(current => {
+              const newData = { ...current };
+              if (extracted.merchant_name) newData.merchant_name = extracted.merchant_name;
+              if (extracted.transaction_date) newData.transaction_date = extracted.transaction_date;
+              if (extracted.amount) newData.amount = extracted.amount.toString();
+              if (extracted.total_amount && !newData.amount) newData.amount = extracted.total_amount.toString();
+              if (extracted.category) {
+                const matchedCat = CATEGORIES.find(c => 
+                  c.toLowerCase() === extracted.category!.toLowerCase() ||
+                  extracted.category!.toLowerCase().includes(c.toLowerCase())
+                );
+                if (matchedCat) newData.category = matchedCat;
+              }
+              if (extracted.description) newData.description = extracted.description;
+              if (extracted.receipt_number) newData.receipt_number = extracted.receipt_number;
+              return newData;
+            });
+          } else if (response.data.error) {
+            console.log('AI extraction error:', response.data.error);
           }
-          if (data.transaction_date) {
-            setFormData(prev => ({ ...prev, transaction_date: data.transaction_date }));
-          }
-          if (data.total_amount) {
-            setFormData(prev => ({ ...prev, amount: data.total_amount.toString() }));
-          }
-          if (data.category) {
-            // Try to match category
-            const matchedCategory = CATEGORIES.find(c => 
-              c.toLowerCase() === data.category.toLowerCase() ||
-              c.toLowerCase().includes(data.category.toLowerCase()) ||
-              data.category.toLowerCase().includes(c.toLowerCase())
-            );
-            if (matchedCategory) {
-              setFormData(prev => ({ ...prev, category: matchedCategory }));
-            }
-          }
-          if (data.description) {
-            setFormData(prev => ({ 
-              ...prev, 
-              description: data.description 
-            }));
-          }
-          if (data.receipt_number) {
-            setFormData(prev => ({ ...prev, receipt_number: data.receipt_number }));
-          }
+        } catch (extractErr) {
+          console.error('AI extraction failed:', extractErr);
         }
-      } catch (extractErr) {
-        console.log('AI extraction not available or failed, fill manually');
       }
       
-      // Show form
+      // Show form after everything is done
       setHasReceipt(true);
     } catch (err) {
       console.error('Upload failed:', err);
       alert('Gagal upload file');
       setReceiptFile(null);
       setReceiptPreview(null);
+      setHasReceipt(false);
     } finally {
       setUploadingFile(false);
       setExtractingData(false);

@@ -132,13 +132,14 @@ export const analyticsAPI = {
 // AI Config API
 export const aiConfigAPI = {
   get: () => api.get<AIConfig>('/ai-config'),
-  update: (data: { base_url?: string; model_name?: string; api_key?: string }) =>
+  update: (data: { base_url?: string; model_name?: string; api_key?: string; ocr_enabled?: boolean }) =>
     api.put<AIConfig>('/ai-config', data),
   test: () => api.post<{ success: boolean; message: string; latency_ms?: number }>('/ai-config/test'),
   extract: (image_base64: string) =>
     api.post<{ success: boolean; data?: any; error?: string }>('/ai-config/extract', null, {
       params: { image_base64 },
     }),
+  getOcrSetting: () => api.get<{ ocr_enabled: boolean }>('/ai-config/ocr-setting'),
 };
 
 // Upload API

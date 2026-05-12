@@ -190,12 +190,14 @@ class AIConfigBase(BaseModel):
     base_url: Optional[str] = None
     model_name: Optional[str] = None
     api_key: Optional[str] = None
+    ocr_enabled: bool = True
 
 
 class AIConfigResponse(BaseModel):
     base_url: Optional[str]
     model_name: Optional[str]
     has_api_key: bool
+    ocr_enabled: bool
 
     class Config:
         from_attributes = True
@@ -205,6 +207,7 @@ class AIConfigUpdate(BaseModel):
     base_url: Optional[str] = None
     model_name: Optional[str] = None
     api_key: Optional[str] = None
+    ocr_enabled: Optional[bool] = None
 
 
 class AIConnectionTest(BaseModel):

@@ -79,6 +79,7 @@ export interface AIConfig {
   base_url?: string;
   model_name?: string;
   has_api_key: boolean;
+  ocr_enabled: boolean;
 }
 
 export interface AnalyticsOverview {

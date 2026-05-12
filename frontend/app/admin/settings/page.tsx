@@ -21,7 +21,7 @@ export default function SettingsPage() {
   const { showToast, showConfirm } = useNotification();
   const [activeTab, setActiveTab] = useState<'ai' | 'database' | 'departments'>('database');
 
-  const [aiConfig, setAiConfig] = useState({ base_url: '', model_name: '', api_key: '' });
+  const [aiConfig, setAiConfig] = useState({ base_url: '', model_name: '', api_key: '', ocr_enabled: true });
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSaving, setAiSaving] = useState(false);
   const [aiTesting, setAiTesting] = useState(false);
@@ -56,7 +56,12 @@ export default function SettingsPage() {
     setAiLoading(true);
     try {
       const res = await aiConfigAPI.get();
-      setAiConfig({ base_url: res.data.base_url || '', model_name: res.data.model_name || '', api_key: res.data.has_api_key ? '********' : '' });
+      setAiConfig({ 
+        base_url: res.data.base_url || '', 
+        model_name: res.data.model_name || '', 
+        api_key: res.data.has_api_key ? '********' : '',
+        ocr_enabled: res.data.ocr_enabled ?? true
+      });
     } catch (err) { console.error('Failed to load AI config:', err); }
     finally { setAiLoading(false); }
   };
@@ -68,6 +73,7 @@ export default function SettingsPage() {
       if (aiConfig.base_url) data.base_url = aiConfig.base_url;
       if (aiConfig.model_name) data.model_name = aiConfig.model_name;
       if (aiConfig.api_key && !aiConfig.api_key.includes('*')) data.api_key = aiConfig.api_key;
+      data.ocr_enabled = aiConfig.ocr_enabled;
       await aiConfigAPI.update(data);
       showToast('success', 'AI configuration saved successfully');
       loadAIConfig();
@@ -337,6 +343,21 @@ export default function SettingsPage() {
                 <div>
                   <label className="block text-sm font-medium text-text-primary mb-2">API Key</label>
                   <Input type="password" value={aiConfig.api_key} onChange={(e) => setAiConfig({ ...aiConfig, api_key: e.target.value })} placeholder="Kosongkan jika tidak ingin mengubah" />
+                </div>
+                <div className="p-4 bg-bg-subtle rounded-radius-lg">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 pr-4">
+                      <label className="block text-sm font-medium text-text-primary mb-1">Receipt OCR (Auto-fill)</label>
+                      <p className="text-text-muted text-xs">Jika aktif, data struk akan di-extract otomatis untuk pre-fill form. Jika nonaktif, receipt hanya diupload tanpa OCR.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAiConfig({ ...aiConfig, ocr_enabled: !aiConfig.ocr_enabled })}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${aiConfig.ocr_enabled ? 'bg-accent' : 'bg-border-default'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${aiConfig.ocr_enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
                 </div>
                 {aiTestResult && (
                   <div className={`p-4 rounded-radius-md ${aiTestResult.success ? 'bg-success/10 border border-success/30' : 'bg-danger/10 border border-danger/30'}`}>

@@ -104,8 +104,8 @@ def init_db():
             
             print(f"Created sample projects and assigned members.")
             
-            # Initialize AI config (empty)
-            ai_config = AIConfig(id=1)
+            # Initialize AI config (empty with OCR enabled by default)
+            ai_config = AIConfig(id=1, ocr_enabled=True)
             db.add(ai_config)
             
             # Create sample claims for testing

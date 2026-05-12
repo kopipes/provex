@@ -97,8 +97,7 @@ export function Sidebar() {
         {/* Header */}
         <div className="h-14 px-4 flex items-center border-b border-border-default">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <img src="/logo.svg" alt="ProvEx" className="w-8 h-8" />
-            <span className="font-display font-semibold text-lg text-inverse">ProvEx</span>
+            <img src="/logo.png" alt="ProvEx" className="h-8 w-auto brightness-0 invert" />
           </Link>
         </div>
 

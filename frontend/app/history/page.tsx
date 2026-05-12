@@ -8,7 +8,7 @@ import { Button } from '@/components/Button';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { claimsAPI } from '@/lib/api';
 import type { Claim } from '@/lib/types';
-import { Search, X, Eye } from 'lucide-react';
+import { Search, X, Eye, Edit2, Trash2 } from 'lucide-react';
 import { useNotification } from '@/components/Toast';
 
 export default function HistoryPage() {
@@ -21,6 +21,17 @@ export default function HistoryPage() {
   const [filter, setFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
+  const [editingClaim, setEditingClaim] = useState<Claim | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    merchant_name: '',
+    transaction_date: '',
+    amount: '',
+    category: '',
+    description: '',
+    receipt_number: '',
+  });
+  const [deletingClaim, setDeletingClaim] = useState<Claim | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     loadClaims();
@@ -74,6 +85,61 @@ export default function HistoryPage() {
       loadClaims();
     } catch (err: any) {
       showToast('error', err.response?.data?.detail || 'Failed to submit claim');
+    }
+  };
+
+  const openEditModal = (claim: Claim) => {
+    setEditingClaim(claim);
+    setEditFormData({
+      merchant_name: claim.merchant_name,
+      transaction_date: claim.transaction_date,
+      amount: claim.amount.toString(),
+      category: claim.category,
+      description: claim.description || '',
+      receipt_number: claim.receipt_number || '',
+    });
+  };
+
+  const handleEditClaim = async () => {
+    if (!editingClaim) return;
+    
+    setSubmitting(true);
+    try {
+      await claimsAPI.update(editingClaim.id, {
+        merchant_name: editFormData.merchant_name,
+        transaction_date: editFormData.transaction_date,
+        amount: parseFloat(editFormData.amount),
+        category: editFormData.category as any,
+        description: editFormData.description || undefined,
+        receipt_number: editFormData.receipt_number || undefined,
+      });
+      showToast('success', 'Klaim berhasil diupdate');
+      setEditingClaim(null);
+      loadClaims();
+    } catch (err: any) {
+      showToast('error', err.response?.data?.detail || 'Failed to update claim');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const openDeleteModal = (claim: Claim) => {
+    setDeletingClaim(claim);
+  };
+
+  const handleDeleteClaim = async () => {
+    if (!deletingClaim) return;
+    
+    setSubmitting(true);
+    try {
+      await claimsAPI.delete(deletingClaim.id);
+      showToast('success', 'Klaim berhasil dihapus');
+      setDeletingClaim(null);
+      loadClaims();
+    } catch (err: any) {
+      showToast('error', err.response?.data?.detail || 'Failed to delete claim');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -178,6 +244,16 @@ export default function HistoryPage() {
                   <div className="mt-4 pt-4 border-t border-border-default flex justify-between items-center">
                     <span className="text-sm text-text-muted">{formatDate(claim.created_at)}</span>
                     <div className="flex gap-2">
+                      {(claim.status === 'draft' || claim.status === 'revision') && (
+                        <Button variant="secondary" size="sm" onClick={() => openEditModal(claim)}>
+                          <Edit2 className="w-4 h-4 mr-1" />Edit
+                        </Button>
+                      )}
+                      {(claim.status === 'draft' || claim.status === 'revision') && (
+                        <Button variant="secondary" size="sm" className="text-danger" onClick={() => openDeleteModal(claim)}>
+                          <Trash2 className="w-4 h-4 mr-1" />Hapus
+                        </Button>
+                      )}
                       {claim.status === 'draft' && (
                         <Button variant="secondary" size="sm" onClick={() => handleSubmitClaim(claim.id)}>
                           Ajukan
@@ -271,10 +347,107 @@ export default function HistoryPage() {
 
               <div className="text-xs text-text-muted text-center pt-4 border-t border-border-default">
                 Dibuat: {formatDate(selectedClaim.created_at)}
-                {selectedClaim.updated_at !== selectedClaim.created_at && (
+                {selectedClaim.updated_at && selectedClaim.updated_at !== selectedClaim.created_at && (
                   <> • Diupdate: {formatDate(selectedClaim.updated_at)}</>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingClaim && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[500px]">
+            <h2 className="text-lg font-semibold text-text-primary mb-4">Edit Klaim</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Nama Merchant</label>
+                <input
+                  type="text"
+                  value={editFormData.merchant_name}
+                  onChange={(e) => setEditFormData({ ...editFormData, merchant_name: e.target.value })}
+                  className="w-full px-4 py-2 bg-bg-surface border border-border-default rounded-radius-md"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">Tanggal</label>
+                  <input
+                    type="date"
+                    value={editFormData.transaction_date}
+                    onChange={(e) => setEditFormData({ ...editFormData, transaction_date: e.target.value })}
+                    className="w-full px-4 py-2 bg-bg-surface border border-border-default rounded-radius-md"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">Jumlah</label>
+                  <input
+                    type="number"
+                    value={editFormData.amount}
+                    onChange={(e) => setEditFormData({ ...editFormData, amount: e.target.value })}
+                    className="w-full px-4 py-2 bg-bg-surface border border-border-default rounded-radius-md"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Kategori</label>
+                <select
+                  value={editFormData.category}
+                  onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
+                  className="w-full px-4 py-2 bg-bg-surface border border-border-default rounded-radius-md"
+                >
+                  <option value="Makanan">Makanan</option>
+                  <option value="Transport">Transport</option>
+                  <option value="Akomodasi">Akomodasi</option>
+                  <option value="Lain-lain">Lain-lain</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Deskripsi</label>
+                <textarea
+                  value={editFormData.description}
+                  onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                  rows={2}
+                  className="w-full px-4 py-2 bg-bg-surface border border-border-default rounded-radius-md resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">No. Kwitansi</label>
+                <input
+                  type="text"
+                  value={editFormData.receipt_number}
+                  onChange={(e) => setEditFormData({ ...editFormData, receipt_number: e.target.value })}
+                  className="w-full px-4 py-2 bg-bg-surface border border-border-default rounded-radius-md"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-4 mt-6">
+              <Button variant="secondary" onClick={() => setEditingClaim(null)}>
+                Batal
+              </Button>
+              <Button onClick={handleEditClaim} isLoading={submitting}>
+                Simpan
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deletingClaim && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[400px]">
+            <h2 className="text-lg font-semibold text-text-primary mb-2">Hapus Klaim?</h2>
+            <p className="text-text-secondary mb-4">
+              Apakah Anda yakin ingin menghapus klaim <strong>{deletingClaim.merchant_name}</strong>?
+            </p>
+            <div className="flex justify-end gap-4">
+              <Button variant="secondary" onClick={() => setDeletingClaim(null)}>
+                Batal
+              </Button>
+              <Button onClick={handleDeleteClaim} isLoading={submitting} className="!bg-danger hover:!bg-danger/90">
+                Hapus
+              </Button>
             </div>
           </div>
         </div>

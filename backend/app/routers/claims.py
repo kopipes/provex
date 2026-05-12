@@ -184,8 +184,11 @@ def update_claim(
             detail="Claim not found"
         )
     
-    # Only owner can update, and only if not yet approved/rejected
-    if claim.user_id != current_user.id:
+    # Admin/Manager can update any claim
+    # Owner can update their own claims only if not approved/rejected
+    is_admin_or_manager = current_user.role in ["admin", "manager"]
+    
+    if claim.user_id != current_user.id and not is_admin_or_manager:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot update other user's claim"
@@ -301,3 +304,52 @@ def submit_claim(
     db.refresh(claim)
     
     return claim_to_response(claim, db)
+
+
+@router.delete("/{claim_id}")
+def delete_claim(
+    claim_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a claim - Admin/Manager can delete any, owner can delete draft only"""
+    claim = db.query(Claim).filter(Claim.id == claim_id).first()
+    if not claim:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Claim not found"
+        )
+    
+    is_admin_or_manager = current_user.role in ["admin", "manager"]
+    
+    # Admin/Manager can delete any claim
+    # Owner can only delete draft claims
+    if claim.user_id != current_user.id:
+        if not is_admin_or_manager:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Cannot delete other user's claim"
+            )
+    else:
+        # Owner can only delete draft claims
+        if claim.status not in ["draft", "revision"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Can only delete draft or revision claims"
+            )
+    
+    # Delete the claim
+    db.delete(claim)
+    
+    # Log audit
+    audit = AuditLog(
+        user_id=current_user.id,
+        action="delete_claim",
+        target_type="claim",
+        target_id=claim_id,
+        details=f"Deleted claim #{claim_id}"
+    )
+    db.add(audit)
+    db.commit()
+    
+    return {"message": "Claim deleted successfully"}

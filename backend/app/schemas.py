@@ -179,7 +179,7 @@ class ClaimResponse(ClaimBase):
     reviewer_name: Optional[str]
     reviewed_at: Optional[datetime]
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime]
 
     class Config:
         from_attributes = True

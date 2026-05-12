@@ -109,6 +109,7 @@ export const claimsAPI = {
     description?: string;
     receipt_number?: string;
   }) => api.put<Claim>(`/claims/${id}`, data),
+  delete: (id: number) => api.delete(`/claims/${id}`),
   updateStatus: (id: number, data: { status: string; notes?: string }) =>
     api.patch<Claim>(`/claims/${id}/status`, data),
   submit: (id: number) => api.post<Claim>(`/claims/${id}/submit`),

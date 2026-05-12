@@ -20,9 +20,10 @@ export default function NewClaimPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingProjects, setLoadingProjects] = useState(true);
+  const [loadingOcrSetting, setLoadingOcrSetting] = useState(true);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [extractingData, setExtractingData] = useState(false);
-  const [ocrEnabled, setOcrEnabled] = useState(true);
+  const [ocrEnabled, setOcrEnabled] = useState(false); // Default to false to prevent race condition
   
   // Step 1: Show upload screen first
   const [hasReceipt, setHasReceipt] = useState(false);
@@ -65,7 +66,9 @@ export default function NewClaimPage() {
       setOcrEnabled(response.data.ocr_enabled);
     } catch (err) {
       console.error('Failed to load OCR setting');
-      setOcrEnabled(true); // Default to enabled
+      setOcrEnabled(false); // Default to disabled when API is off
+    } finally {
+      setLoadingOcrSetting(false);
     }
   };
 

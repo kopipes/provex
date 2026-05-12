@@ -50,7 +50,7 @@ async def upload_receipt(
     
     return UploadResponse(
         filename=unique_filename,
-        path=f"/api/uploads/{unique_filename}"
+        path=f"/upload/{unique_filename}"
     )
 
 

@@ -8,7 +8,8 @@ import { Button } from '@/components/Button';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { claimsAPI } from '@/lib/api';
 import type { Claim } from '@/lib/types';
-import { Search, X, Eye, Edit2, Trash2 } from 'lucide-react';
+import { Search, X, Eye, Edit2, Trash2, Upload, Image } from 'lucide-react';
+import { uploadAPI } from '@/lib/api';
 import { useNotification } from '@/components/Toast';
 
 export default function HistoryPage() {
@@ -30,6 +31,8 @@ export default function HistoryPage() {
     description: '',
     receipt_number: '',
   });
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
   const [deletingClaim, setDeletingClaim] = useState<Claim | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -98,6 +101,8 @@ export default function HistoryPage() {
       description: claim.description || '',
       receipt_number: claim.receipt_number || '',
     });
+    setEditImageFile(null);
+    setEditImagePreview(claim.receipt_image_path ? `http://localhost:8000${claim.receipt_image_path}` : null);
   };
 
   const handleEditClaim = async () => {
@@ -105,6 +110,20 @@ export default function HistoryPage() {
     
     setSubmitting(true);
     try {
+      let receipt_image_path = editingClaim.receipt_image_path;
+      
+      // Upload new image if selected
+      if (editImageFile) {
+        try {
+          const uploadRes = await uploadAPI.uploadReceipt(editImageFile);
+          receipt_image_path = uploadRes.data.path;
+        } catch (uploadErr: any) {
+          showToast('error', 'Gagal upload gambar kwitansi');
+          setSubmitting(false);
+          return;
+        }
+      }
+      
       await claimsAPI.update(editingClaim.id, {
         merchant_name: editFormData.merchant_name,
         transaction_date: editFormData.transaction_date,
@@ -112,14 +131,32 @@ export default function HistoryPage() {
         category: editFormData.category as any,
         description: editFormData.description || undefined,
         receipt_number: editFormData.receipt_number || undefined,
+        receipt_image_path,
       });
-      showToast('success', 'Klaim berhasil diupdate');
+      
+      // Show appropriate message based on original status
+      const statusMessage = editingClaim.status === 'revision' 
+        ? 'Klaim berhasil diupdate dan diajukan ulang' 
+        : 'Klaim berhasil diupdate';
+      showToast('success', statusMessage);
       setEditingClaim(null);
       loadClaims();
     } catch (err: any) {
       showToast('error', err.response?.data?.detail || 'Failed to update claim');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEditImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -169,7 +206,7 @@ export default function HistoryPage() {
             </div>
             
             <div className="flex gap-2 flex-wrap">
-              {['', 'draft', 'submitted', 'approved', 'rejected'].map((status) => (
+              {['', 'draft', 'submitted', 'revision', 'approved', 'rejected'].map((status) => (
                 <button
                   key={status}
                   onClick={() => handleFilterChange(status)}
@@ -358,7 +395,7 @@ export default function HistoryPage() {
 
       {editingClaim && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[500px]">
+          <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[500px] max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-semibold text-text-primary mb-4">Edit Klaim</h2>
             <div className="space-y-4">
               <div>
@@ -411,6 +448,37 @@ export default function HistoryPage() {
                   rows={2}
                   className="w-full px-4 py-2 bg-bg-surface border border-border-default rounded-radius-md resize-none"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Gambar Kwitansi</label>
+                <div className="border border-border-default rounded-radius-md overflow-hidden bg-bg-subtle">
+                  {editImagePreview ? (
+                    <div className="relative">
+                      <img src={editImagePreview} alt="Preview" className="w-full h-40 object-contain" />
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                        <label className="flex items-center justify-center gap-2 text-white text-sm cursor-pointer">
+                          <Upload className="w-4 h-4" />
+                          Ganti Gambar
+                          <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                        </label>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setEditImageFile(null); setEditImagePreview(editingClaim?.receipt_image_path ? `http://localhost:8000${editingClaim.receipt_image_path}` : null); }}
+                        className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full hover:bg-black/70"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center py-8 cursor-pointer hover:bg-bg-subtle transition-colors">
+                      <Image className="w-10 h-10 text-text-muted mb-2" />
+                      <span className="text-sm text-text-secondary mb-1">Klik untuk upload gambar kwitansi</span>
+                      <span className="text-xs text-text-muted">Format: JPG, PNG (max 5MB)</span>
+                      <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                    </label>
+                  )}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-text-primary mb-1">No. Kwitansi</label>

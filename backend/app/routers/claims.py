@@ -212,6 +212,12 @@ def update_claim(
         claim.description = claim_data.description
     if claim_data.receipt_number is not None:
         claim.receipt_number = claim_data.receipt_number
+    if claim_data.receipt_image_path is not None:
+        claim.receipt_image_path = claim_data.receipt_image_path
+    
+    # If claim was in revision status and user is editing, auto-submit
+    if claim.status == "revision":
+        claim.status = "submitted"
     
     db.commit()
     db.refresh(claim)

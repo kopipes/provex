@@ -108,6 +108,7 @@ export const claimsAPI = {
     category?: string;
     description?: string;
     receipt_number?: string;
+    receipt_image_path?: string;
   }) => api.put<Claim>(`/claims/${id}`, data),
   delete: (id: number) => api.delete(`/claims/${id}`),
   updateStatus: (id: number, data: { status: string; notes?: string }) =>

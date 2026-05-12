@@ -158,6 +158,7 @@ class ClaimUpdate(BaseModel):
     category: Optional[ClaimCategory] = None
     description: Optional[str] = None
     receipt_number: Optional[str] = None
+    receipt_image_path: Optional[str] = None
 
 
 class ClaimStatusUpdate(BaseModel):

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User, Department
 from app.schemas import DepartmentCreate, DepartmentUpdate, DepartmentResponse
-from app.auth import require_admin
+from app.auth import require_admin, require_manager_or_admin
 from typing import List
 
 router = APIRouter(prefix="/departments", tags=["Departments"])
@@ -19,9 +19,9 @@ def list_departments_public(db: Session = Depends(get_db)):
 @router.get("", response_model=List[DepartmentResponse])
 def list_departments(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)
+    current_user: User = Depends(require_manager_or_admin)
 ):
-    """List all departments (admin only)"""
+    """List all departments (manager and admin)"""
     departments = db.query(Department).order_by(Department.name).all()
     return departments
 

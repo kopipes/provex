@@ -6,11 +6,9 @@ import { useAuth } from '@/lib/auth';
 import { Sidebar } from '@/components/Sidebar';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
-import { uploadAPI, projectsAPI, claimsAPI, aiConfigAPI } from '@/lib/api';
-import type { Project, ClaimCategory } from '@/lib/types';
+import { uploadAPI, projectsAPI, claimsAPI, aiConfigAPI, categoriesAPI } from '@/lib/api';
+import type { Project, Category } from '@/lib/types';
 import { Camera, Upload, Loader2 } from 'lucide-react';
-
-const CATEGORIES: ClaimCategory[] = ['Makanan', 'Transport', 'Akomodasi', 'Lain-lain'];
 
 export default function NewClaimPage() {
   const router = useRouter();
@@ -18,12 +16,14 @@ export default function NewClaimPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingProjects, setLoadingProjects] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const [loadingOcrSetting, setLoadingOcrSetting] = useState(true);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [extractingData, setExtractingData] = useState(false);
-  const [ocrEnabled, setOcrEnabled] = useState(false); // Default to false to prevent race condition
+  const [ocrEnabled, setOcrEnabled] = useState(false);
   
   // Step 1: Show upload screen first
   const [hasReceipt, setHasReceipt] = useState(false);
@@ -37,7 +37,7 @@ export default function NewClaimPage() {
     merchant_name: '',
     transaction_date: '',
     amount: '',
-    category: '' as ClaimCategory | '',
+    category: '',
     description: '',
     receipt_number: '',
   });
@@ -46,6 +46,7 @@ export default function NewClaimPage() {
 
   useEffect(() => {
     loadProjects();
+    loadCategories();
     loadOcrSetting();
   }, []);
 
@@ -60,13 +61,24 @@ export default function NewClaimPage() {
     }
   };
 
+  const loadCategories = async () => {
+    try {
+      const response = await categoriesAPI.list();
+      setCategories(response.data);
+    } catch (err) {
+      console.error('Failed to load categories');
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
   const loadOcrSetting = async () => {
     try {
       const response = await aiConfigAPI.getOcrSetting();
       setOcrEnabled(response.data.ocr_enabled);
     } catch (err) {
       console.error('Failed to load OCR setting');
-      setOcrEnabled(false); // Default to disabled when API is off
+      setOcrEnabled(false);
     } finally {
       setLoadingOcrSetting(false);
     }
@@ -99,7 +111,7 @@ export default function NewClaimPage() {
         merchant_name: formData.merchant_name,
         transaction_date: formData.transaction_date,
         amount: parseFloat(formData.amount),
-        category: formData.category as ClaimCategory,
+        category: formData.category,
         description: formData.description || undefined,
         receipt_number: formData.receipt_number || undefined,
         receipt_image_path: uploadedPath || undefined,
@@ -159,12 +171,12 @@ export default function NewClaimPage() {
               if (extracted.transaction_date) newData.transaction_date = extracted.transaction_date;
               if (extracted.amount) newData.amount = extracted.amount.toString();
               if (extracted.total_amount && !newData.amount) newData.amount = extracted.total_amount.toString();
-              if (extracted.category) {
-                const matchedCat = CATEGORIES.find(c => 
-                  c.toLowerCase() === extracted.category!.toLowerCase() ||
-                  extracted.category!.toLowerCase().includes(c.toLowerCase())
+              if (extracted.category && categories.length > 0) {
+                const matchedCat = categories.find((c: Category) => 
+                  c.name.toLowerCase() === extracted.category!.toLowerCase() ||
+                  extracted.category!.toLowerCase().includes(c.name.toLowerCase())
                 );
-                if (matchedCat) newData.category = matchedCat;
+                if (matchedCat) newData.category = matchedCat.name;
               }
               if (extracted.description) newData.description = extracted.description;
               if (extracted.receipt_number) newData.receipt_number = extracted.receipt_number;
@@ -430,27 +442,33 @@ export default function NewClaimPage() {
               </div>
             </div>
 
-            {/* Category */}
+            {/* Category - Dynamic from API */}
             <div>
               <label className="block text-sm font-medium text-text-primary mb-2">
                 Kategori *
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
-                {CATEGORIES.map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => handleChange('category', cat)}
-                    className={`px-3 py-2 md:px-4 md:py-3 rounded-radius-md border text-sm font-medium transition-colors ${
-                      formData.category === cat
-                        ? 'bg-accent text-white border-accent'
-                        : 'bg-bg-surface border-border-default text-text-primary hover:border-accent/50'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
+              {loadingCategories ? (
+                <div className="px-4 py-3 text-text-secondary text-sm">Memuat kategori...</div>
+              ) : categories.length === 0 ? (
+                <div className="px-4 py-3 text-text-secondary text-sm">Tidak ada kategori tersedia</div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => handleChange('category', cat.name)}
+                      className={`px-3 py-2 md:px-4 md:py-3 rounded-radius-md border text-sm font-medium transition-colors ${
+                        formData.category === cat.name
+                          ? 'bg-accent text-white border-accent'
+                          : 'bg-bg-surface border-border-default text-text-primary hover:border-accent/50'
+                      }`}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+              )}
               {errors.category && (
                 <p className="text-danger text-sm mt-1">{errors.category}</p>
               )}

@@ -1,24 +1,46 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { authAPI } from '@/lib/api';
+import { authAPI, departmentsAPI } from '@/lib/api';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
+
+interface Department {
+  id: number;
+  name: string;
+}
 
 export default function RegisterPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [departmentsLoading, setDepartmentsLoading] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    department: '',
+    department_id: '',
   });
   const [error, setError] = useState('');
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Fetch departments on mount
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const res = await departmentsAPI.listPublic();
+        setDepartments(res.data);
+      } catch (err) {
+        console.error('Failed to fetch departments:', err);
+      } finally {
+        setDepartmentsLoading(false);
+      }
+    };
+    fetchDepartments();
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData(prev => ({
       ...prev,
       [e.target.name]: e.target.value
@@ -44,11 +66,14 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
+      // Find department name from selected ID
+      const selectedDept = departments.find(d => d.id === Number(formData.department_id));
+      
       await authAPI.register({
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        department: formData.department || undefined,
+        department: selectedDept?.name || undefined,
       });
       
       // Redirect to login with success message
@@ -91,14 +116,41 @@ export default function RegisterPage() {
             required
           />
 
-          <Input
-            label="Departemen"
-            type="text"
-            name="department"
-            value={formData.department}
-            onChange={handleChange}
-            placeholder="Contoh: Engineering"
-          />
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-text-primary">
+              Departemen
+            </label>
+            {departmentsLoading ? (
+              <select
+                className="w-full px-3 py-2 bg-bg-surface border border-border-default rounded-radius-md text-text-secondary"
+                disabled
+              >
+                <option>Memuat...</option>
+              </select>
+            ) : departments.length > 0 ? (
+              <select
+                name="department_id"
+                value={formData.department_id}
+                onChange={handleChange}
+                className="w-full px-3 py-2 bg-bg-surface border border-border-default rounded-radius-md text-text-primary"
+              >
+                <option value="">Pilih departemen</option>
+                {departments.map(dept => (
+                  <option key={dept.id} value={dept.id}>
+                    {dept.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <Input
+                type="text"
+                name="department"
+                value={formData.department_id}
+                onChange={handleChange}
+                placeholder="Contoh: Engineering"
+              />
+            )}
+          </div>
 
           <Input
             label="Password"

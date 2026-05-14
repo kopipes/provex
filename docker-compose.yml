@@ -19,7 +19,7 @@ services:
     ports:
       - "8090:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8010
+      - NEXT_PUBLIC_API_URL=/api
     restart: unless-stopped
     networks:
       - provex-network

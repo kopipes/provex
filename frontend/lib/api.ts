@@ -167,6 +167,7 @@ export const databaseAPI = {
 
 // Departments API
 export const departmentsAPI = {
+  listPublic: () => api.get<import('./types').Department[]>('/departments/public'),
   list: () => api.get<import('./types').Department[]>('/departments'),
   get: (id: number) => api.get<import('./types').Department>(`/departments/${id}`),
   create: (data: { name: string; description?: string }) =>

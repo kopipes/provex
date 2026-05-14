@@ -9,6 +9,13 @@ from typing import List
 router = APIRouter(prefix="/departments", tags=["Departments"])
 
 
+@router.get("/public", response_model=List[DepartmentResponse])
+def list_departments_public(db: Session = Depends(get_db)):
+    """List all departments for public access (registration)"""
+    departments = db.query(Department).order_by(Department.name).all()
+    return departments
+
+
 @router.get("", response_model=List[DepartmentResponse])
 def list_departments(
     db: Session = Depends(get_db),

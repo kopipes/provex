@@ -134,7 +134,7 @@ def update_user_role(
     user_id: int,
     role_data: UserRoleUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)
+    current_user: User = Depends(require_manager_or_admin)
 ):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -149,6 +149,19 @@ def update_user_role(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot change your own role"
         )
+    
+    # Managers can only change role between user and manager (not to/from admin)
+    if current_user.role == "manager":
+        if role_data.role.value == "admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only admin can assign admin role"
+            )
+        if user.role == "admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only admin can modify admin users"
+            )
     
     user.role = role_data.role.value
     db.commit()

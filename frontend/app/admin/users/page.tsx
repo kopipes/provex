@@ -176,9 +176,11 @@ export default function AdminUsersPage() {
                 <h1 className="text-xl md:text-[24px] font-display font-bold text-text-primary">Kelola Pengguna</h1>
                 <p className="text-text-secondary text-sm mt-1">Kelola user dan role pengguna</p>
               </div>
-              <Button onClick={() => { setActionType('add'); setActionUser(null); }} className="w-full sm:w-auto">
-                <UserPlus className="w-4 h-4 mr-2" />Tambah User
-              </Button>
+              {user?.role === 'admin' && (
+                <Button onClick={() => { setActionType('add'); setActionUser(null); }} className="w-full sm:w-auto">
+                  <UserPlus className="w-4 h-4 mr-2" />Tambah User
+                </Button>
+              )}
             </div>
             <div className="flex flex-col md:flex-row gap-3">
               <div className="relative flex-1">
@@ -250,7 +252,9 @@ export default function AdminUsersPage() {
                   <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-border-default">
                     <Button variant="secondary" size="sm" onClick={() => handleEditUser(u)} className="flex-1">Edit</Button>
                     <Button variant="secondary" size="sm" onClick={() => { setActionUser(u); setActionType('status'); setNewStatus(u.status); }} className="flex-1">Status</Button>
-                    <Button variant="secondary" size="sm" onClick={() => { setActionUser(u); setActionType('role'); setNewRole(u.role); }} className="flex-1">Role</Button>
+                    {user?.role === 'admin' && (
+                      <Button variant="secondary" size="sm" onClick={() => { setActionUser(u); setActionType('role'); setNewRole(u.role); }} className="flex-1">Role</Button>
+                    )}
                     {user?.role === 'admin' && (
                       <Button variant="destructive" size="sm" onClick={() => handleDeleteUser(u)} className="flex-1">
                         <Trash2 className="w-4 h-4" />

@@ -123,6 +123,13 @@ def update_user_status(
             detail="Cannot deactivate your own account"
         )
     
+    # Managers cannot modify admin users
+    if current_user.role == "manager" and user.role == "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admin can modify admin users"
+        )
+    
     user.status = status_data.status.value
     db.commit()
     db.refresh(user)

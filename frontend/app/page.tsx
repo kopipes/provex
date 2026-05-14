@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/Button';
@@ -12,6 +12,17 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Check for registration success
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('registered') === 'true') {
+      setSuccessMessage('Registrasi berhasil! Silakan masuk dengan akun Anda.');
+      // Clean URL
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +64,10 @@ export default function LoginPage() {
             placeholder="••••••••"
             required
           />
+
+          {successMessage && (
+            <p className="text-sm text-success text-center bg-success/10 py-2 rounded">{successMessage}</p>
+          )}
 
           {error && (
             <p className="text-sm text-danger text-center">{error}</p>

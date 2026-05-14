@@ -275,31 +275,31 @@ export default function SettingsPage() {
   return (
     <div className="flex min-h-screen bg-bg-base">
       <Sidebar />
-      <main className="flex-1 p-4 md:p-8 md:ml-[240px]">
+      <main className="flex-1 p-4 sm:p-6 md:p-8 md:ml-[240px]">
         <div className="max-w-[900px] mx-auto">
-          <div className="mb-6 md:mb-8">
-            <h1 className="text-xl md:text-[24px] font-display font-bold text-text-primary">Pengaturan</h1>
+          <div className="mb-4 sm:mb-6 md:mb-8">
+            <h1 className="text-xl sm:text-2xl md:text-[24px] font-display font-bold text-text-primary">Pengaturan</h1>
             <p className="text-text-secondary text-sm mt-1">Kelola konfigurasi sistem</p>
           </div>
 
-          <div className="flex gap-2 mb-6 border-b border-border-default overflow-x-auto">
-            <button onClick={() => setActiveTab('database')} className={`px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'database' ? 'text-accent border-b-2 border-accent' : 'text-text-secondary hover:text-text-primary'}`}>
-              <Database className="w-4 h-4 inline mr-2" />Database
+          <div className="flex gap-1 sm:gap-2 mb-4 sm:mb-6 border-b border-border-default overflow-x-auto pb-px -mx-4 sm:mx-0 px-4 sm:px-0">
+            <button onClick={() => setActiveTab('database')} className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'database' ? 'text-accent border-b-2 border-accent' : 'text-text-secondary hover:text-text-primary'}`}>
+              <Database className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1 sm:mr-2" /><span className="hidden sm:inline">Database</span><span className="sm:hidden">DB</span>
             </button>
-            <button onClick={() => setActiveTab('departments')} className={`px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'departments' ? 'text-accent border-b-2 border-accent' : 'text-text-secondary hover:text-text-primary'}`}>
-              <Building2 className="w-4 h-4 inline mr-2" />Departemen
+            <button onClick={() => setActiveTab('departments')} className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'departments' ? 'text-accent border-b-2 border-accent' : 'text-text-secondary hover:text-text-primary'}`}>
+              <Building2 className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1 sm:mr-2" />Departemen
             </button>
-            <button onClick={() => setActiveTab('categories')} className={`px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'categories' ? 'text-accent border-b-2 border-accent' : 'text-text-secondary hover:text-text-primary'}`}>
-              <Tag className="w-4 h-4 inline mr-2" />Kategori
+            <button onClick={() => setActiveTab('categories')} className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'categories' ? 'text-accent border-b-2 border-accent' : 'text-text-secondary hover:text-text-primary'}`}>
+              <Tag className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1 sm:mr-2" />Kategori
             </button>
-            <button onClick={() => setActiveTab('ai')} className={`px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'ai' ? 'text-accent border-b-2 border-accent' : 'text-text-secondary hover:text-text-primary'}`}>
-              <TestTube className="w-4 h-4 inline mr-2" />AI Config
+            <button onClick={() => setActiveTab('ai')} className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'ai' ? 'text-accent border-b-2 border-accent' : 'text-text-secondary hover:text-text-primary'}`}>
+              <TestTube className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1 sm:mr-2" />AI
             </button>
           </div>
 
           {activeTab === 'database' && (
-            <div className="space-y-6">
-              <div className="bg-bg-surface border border-border-default rounded-radius-lg p-6">
+            <div className="space-y-4 sm:space-y-6">
+              <div className="bg-bg-surface border border-border-default rounded-radius-lg p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                   <div>
                     <h3 className="font-medium text-text-primary">Backup Database</h3>
@@ -309,8 +309,8 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="bg-bg-surface border border-border-default rounded-radius-lg p-6">
-                <h3 className="font-medium text-text-primary mb-4">Daftar Backup</h3>
+              <div className="bg-bg-surface border border-border-default rounded-radius-lg p-4 sm:p-6">
+                <h3 className="font-medium text-text-primary mb-3 sm:mb-4">Daftar Backup</h3>
                 {loading ? <p className="text-text-secondary text-center py-4">Memuat...</p>
                  : backups.length === 0 ? <p className="text-text-secondary text-center py-4">Belum ada backup</p>
                  : <div className="space-y-3">
@@ -345,9 +345,9 @@ export default function SettingsPage() {
           )}
 
           {activeTab === 'departments' && (
-            <div className="space-y-6">
-              <div className="bg-bg-surface border border-border-default rounded-radius-lg p-6">
-                <h3 className="font-medium text-text-primary mb-4">{editingDept ? 'Edit Departemen' : 'Tambah Departemen Baru'}</h3>
+            <div className="space-y-4 sm:space-y-6">
+              <div className="bg-bg-surface border border-border-default rounded-radius-lg p-4 sm:p-6">
+                <h3 className="font-medium text-text-primary mb-3 sm:mb-4">{editingDept ? 'Edit Departemen' : 'Tambah Departemen Baru'}</h3>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-text-primary mb-2">Nama Departemen *</label>
@@ -366,8 +366,8 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="bg-bg-surface border border-border-default rounded-radius-lg p-6">
-                <h3 className="font-medium text-text-primary mb-4">Daftar Departemen</h3>
+              <div className="bg-bg-surface border border-border-default rounded-radius-lg p-4 sm:p-6">
+                <h3 className="font-medium text-text-primary mb-3 sm:mb-4">Daftar Departemen</h3>
                 {deptLoading ? <p className="text-text-secondary text-center py-4">Memuat...</p>
                  : departments.length === 0 ? <p className="text-text-secondary text-center py-4">Belum ada departemen</p>
                  : <div className="space-y-3">
@@ -389,9 +389,9 @@ export default function SettingsPage() {
           )}
 
           {activeTab === 'categories' && (
-            <div className="space-y-6">
-              <div className="bg-bg-surface border border-border-default rounded-radius-lg p-6">
-                <h3 className="font-medium text-text-primary mb-4">{editingCat ? 'Edit Kategori' : 'Tambah Kategori Baru'}</h3>
+            <div className="space-y-4 sm:space-y-6">
+              <div className="bg-bg-surface border border-border-default rounded-radius-lg p-4 sm:p-6">
+                <h3 className="font-medium text-text-primary mb-3 sm:mb-4">{editingCat ? 'Edit Kategori' : 'Tambah Kategori Baru'}</h3>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-text-primary mb-2">Nama Kategori *</label>
@@ -410,8 +410,8 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="bg-bg-surface border border-border-default rounded-radius-lg p-6">
-                <h3 className="font-medium text-text-primary mb-4">Daftar Kategori</h3>
+              <div className="bg-bg-surface border border-border-default rounded-radius-lg p-4 sm:p-6">
+                <h3 className="font-medium text-text-primary mb-3 sm:mb-4">Daftar Kategori</h3>
                 {catLoading ? <p className="text-text-secondary text-center py-4">Memuat...</p>
                  : categories.length === 0 ? <p className="text-text-secondary text-center py-4">Belum ada kategori</p>
                  : <div className="space-y-3">
@@ -433,7 +433,7 @@ export default function SettingsPage() {
           )}
 
           {activeTab === 'ai' && (
-            <div className="bg-bg-surface border border-border-default rounded-radius-lg p-6">
+            <div className="bg-bg-surface border border-border-default rounded-radius-lg p-4 sm:p-6">
               {aiLoading ? <p className="text-text-secondary text-center py-4">Memuat...</p>
                : <div className="space-y-6">
                 <div>

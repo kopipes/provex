@@ -98,11 +98,11 @@ export default function DashboardPage() {
   return (
     <div className="flex min-h-screen bg-bg-base">
       <Sidebar />
-      <main className="flex-1 p-8 md:ml-[240px]">
+      <main className="flex-1 p-4 sm:p-6 md:p-8 md:ml-[240px]">
         <div className="max-w-[1100px] mx-auto">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-[24px] font-display font-bold text-text-primary">
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-xl sm:text-[24px] font-display font-bold text-text-primary">
               Dashboard
             </h1>
             <p className="text-text-secondary text-sm mt-1">
@@ -111,10 +111,10 @@ export default function DashboardPage() {
           </div>
 
           {/* Filters */}
-          <div className="bg-bg-surface border border-border-default rounded-radius-lg p-4 mb-6">
-            <div className="flex flex-col sm:flex-row gap-4">
+          <div className="bg-bg-surface border border-border-default rounded-radius-lg p-3 sm:p-4 mb-4 sm:mb-6">
+            <div className="flex flex-col gap-3 sm:gap-4">
               {/* Search */}
-              <div className="flex-1 relative">
+              <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                 <input
                   type="text"
@@ -126,32 +126,34 @@ export default function DashboardPage() {
               </div>
               
               {/* Date Range */}
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-text-muted" />
-                <input
-                  type="date"
-                  value={dateRange.start}
-                  onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                  className="px-3 py-2 bg-bg-muted border border-border-default rounded-radius-md text-sm text-text-primary focus:outline-none focus:border-accent"
-                />
-                <span className="text-text-muted">-</span>
-                <input
-                  type="date"
-                  value={dateRange.end}
-                  onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                  className="px-3 py-2 bg-bg-muted border border-border-default rounded-radius-md text-sm text-text-primary focus:outline-none focus:border-accent"
-                />
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-text-muted shrink-0" />
+                  <input
+                    type="date"
+                    value={dateRange.start}
+                    onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                    className="px-2 sm:px-3 py-2 bg-bg-muted border border-border-default rounded-radius-md text-sm text-text-primary focus:outline-none focus:border-accent w-28 sm:w-auto"
+                  />
+                  <span className="text-text-muted shrink-0">-</span>
+                  <input
+                    type="date"
+                    value={dateRange.end}
+                    onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                    className="px-2 sm:px-3 py-2 bg-bg-muted border border-border-default rounded-radius-md text-sm text-text-primary focus:outline-none focus:border-accent w-28 sm:w-auto"
+                  />
+                </div>
+                
+                {/* Clear filters */}
+                {hasFilters && (
+                  <button
+                    onClick={clearFilters}
+                    className="px-4 py-2 text-sm text-accent hover:bg-accent-subtle rounded-radius-md transition-colors self-start sm:self-auto"
+                  >
+                    Clear
+                  </button>
+                )}
               </div>
-              
-              {/* Clear filters */}
-              {hasFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="px-4 py-2 text-sm text-accent hover:bg-accent-subtle rounded-radius-md transition-colors"
-                >
-                  Clear
-                </button>
-              )}
             </div>
           </div>
 
@@ -172,11 +174,11 @@ export default function DashboardPage() {
           ) : (
             <>
               {/* Projects Grid */}
-              <div className="mb-8">
-                <h2 className="text-lg font-semibold text-text-primary mb-4">
+              <div className="mb-6 md:mb-8">
+                <h2 className="text-base sm:text-lg font-semibold text-text-primary mb-3 sm:mb-4">
                   Project Saya <span className="text-sm font-normal text-text-muted">({projects.length})</span>
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {projects.map((project) => (
                     <Link
                       key={project.id}
@@ -210,26 +212,26 @@ export default function DashboardPage() {
               {/* Recent Claims */}
               {recentClaims.length > 0 && (
                 <div>
-                  <h2 className="text-lg font-semibold text-text-primary mb-4">Klaim Terbaru</h2>
-                  <div className="bg-bg-surface border border-border-default rounded-radius-lg overflow-hidden">
-                    <table className="w-full">
+                  <h2 className="text-base sm:text-lg font-semibold text-text-primary mb-3 sm:mb-4">Klaim Terbaru</h2>
+                  <div className="bg-bg-surface border border-border-default rounded-radius-lg overflow-x-auto">
+                    <table className="w-full min-w-[600px]">
                       <thead className="bg-bg-muted border-b border-border-default">
                         <tr>
-                          <th className="text-left px-4 py-3 text-sm font-medium text-text-secondary">Merchant</th>
-                          <th className="text-left px-4 py-3 text-sm font-medium text-text-secondary">Project</th>
-                          <th className="text-left px-4 py-3 text-sm font-medium text-text-secondary">Amount</th>
-                          <th className="text-left px-4 py-3 text-sm font-medium text-text-secondary">Status</th>
-                          <th className="text-left px-4 py-3 text-sm font-medium text-text-secondary">Tanggal</th>
+                          <th className="text-left px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium text-text-secondary">Merchant</th>
+                          <th className="text-left px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium text-text-secondary hidden sm:table-cell">Project</th>
+                          <th className="text-left px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium text-text-secondary">Amount</th>
+                          <th className="text-left px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium text-text-secondary">Status</th>
+                          <th className="text-left px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium text-text-secondary hidden md:table-cell">Tanggal</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border-default">
                         {recentClaims.map((claim) => (
                           <tr key={claim.id} className="hover:bg-bg-muted/50">
-                            <td className="px-4 py-3 text-sm text-text-primary">{claim.merchant_name}</td>
-                            <td className="px-4 py-3 text-sm text-text-secondary">{claim.project_name || '-'}</td>
-                            <td className="px-4 py-3 text-sm font-medium text-text-primary">{formatCurrency(claim.amount)}</td>
-                            <td className="px-4 py-3"><StatusBadge status={claim.status} /></td>
-                            <td className="px-4 py-3 text-sm text-text-secondary">{formatDate(claim.created_at)}</td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-text-primary truncate max-w-[120px] sm:max-w-none">{claim.merchant_name}</td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-text-secondary hidden sm:table-cell">{claim.project_name || '-'}</td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium text-text-primary">{formatCurrency(claim.amount)}</td>
+                            <td className="px-3 sm:px-4 py-3"><StatusBadge status={claim.status} /></td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-text-secondary hidden md:table-cell">{formatDate(claim.created_at)}</td>
                           </tr>
                         ))}
                       </tbody>

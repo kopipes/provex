@@ -2,9 +2,29 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
 from app.routers import auth, users, projects, claims, analytics, ai_config, upload, database, departments
+import os
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
+
+# Auto-seed database if empty (skip in Docker volume persistence)
+def check_and_seed_db():
+    """Check if database needs seeding and run init_db.py"""
+    db_path = os.environ.get('DATABASE_URL', 'sqlite:///./reimburseeasy.db').replace('sqlite:///', '')
+    if os.path.exists(db_path):
+        import sqlite3
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM users")
+        count = cursor.fetchone()[0]
+        conn.close()
+        if count == 0:
+            print("Database is empty, seeding with initial data...")
+            import subprocess
+            subprocess.run(['python', '/app/init_db.py'], check=False)
+
+# Run database check on startup
+check_and_seed_db()
 
 app = FastAPI(
     title="ProvEx API",

@@ -5,9 +5,9 @@ import { useAuth } from '@/lib/auth';
 import { Sidebar } from '@/components/Sidebar';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
-import { aiConfigAPI, databaseAPI, departmentsAPI } from '@/lib/api';
-import { Database, Download, Upload, Trash2, Plus, TestTube, Save, AlertTriangle, Building2, Edit2, X } from 'lucide-react';
-import type { Department } from '@/lib/types';
+import { aiConfigAPI, databaseAPI, departmentsAPI, categoriesAPI } from '@/lib/api';
+import { Database, Download, Upload, Trash2, Plus, TestTube, Save, AlertTriangle, Building2, Edit2, X, Tag } from 'lucide-react';
+import type { Department, Category } from '@/lib/types';
 import { useNotification } from '@/components/Toast';
 
 interface Backup {
@@ -19,7 +19,7 @@ interface Backup {
 export default function SettingsPage() {
   const { user } = useAuth();
   const { showToast, showConfirm } = useNotification();
-  const [activeTab, setActiveTab] = useState<'ai' | 'database' | 'departments'>('database');
+  const [activeTab, setActiveTab] = useState<'ai' | 'database' | 'departments' | 'categories'>('database');
 
   const [aiConfig, setAiConfig] = useState({ base_url: '', model_name: '', api_key: '', ocr_enabled: true });
   const [aiLoading, setAiLoading] = useState(false);
@@ -40,6 +40,13 @@ export default function SettingsPage() {
   const [deptDesc, setDeptDesc] = useState('');
   const [deptSaving, setDeptSaving] = useState(false);
 
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [catLoading, setCatLoading] = useState(false);
+  const [editingCat, setEditingCat] = useState<Category | null>(null);
+  const [catName, setCatName] = useState('');
+  const [catDesc, setCatDesc] = useState('');
+  const [catSaving, setCatSaving] = useState(false);
+
   useEffect(() => {
     if (user?.role === 'admin') {
       loadBackups();
@@ -50,6 +57,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (activeTab === 'departments') loadDepartments();
+    if (activeTab === 'categories') loadCategories();
   }, [activeTab]);
 
   const loadAIConfig = async () => {
@@ -207,6 +215,59 @@ export default function SettingsPage() {
 
   const resetDeptForm = () => { setEditingDept(null); setDeptName(''); setDeptDesc(''); };
 
+  const loadCategories = async () => {
+    setCatLoading(true);
+    try { const res = await categoriesAPI.list(); setCategories(res.data); }
+    catch (err) { console.error('Failed to load categories:', err); }
+    finally { setCatLoading(false); }
+  };
+
+  const handleAddCategory = async () => {
+    if (!catName.trim()) { showToast('error', 'Nama kategori diperlukan'); return; }
+    setCatSaving(true);
+    try {
+      await categoriesAPI.create({ name: catName.trim(), description: catDesc.trim() || undefined });
+      resetCatForm();
+      loadCategories();
+      showToast('success', 'Kategori berhasil ditambahkan');
+    } catch (err: any) { showToast('error', err.response?.data?.detail || 'Failed to create category'); }
+    finally { setCatSaving(false); }
+  };
+
+  const handleEditCategory = (cat: Category) => {
+    setEditingCat(cat);
+    setCatName(cat.name);
+    setCatDesc(cat.description || '');
+  };
+
+  const handleUpdateCategory = async () => {
+    if (!editingCat || !catName.trim()) { showToast('error', 'Nama kategori diperlukan'); return; }
+    setCatSaving(true);
+    try {
+      await categoriesAPI.update(editingCat.id, { name: catName.trim(), description: catDesc.trim() || undefined });
+      resetCatForm();
+      loadCategories();
+      showToast('success', 'Kategori berhasil diupdate');
+    } catch (err: any) { showToast('error', err.response?.data?.detail || 'Failed to update category'); }
+    finally { setCatSaving(false); }
+  };
+
+  const handleDeleteCategory = (cat: Category) => {
+    showConfirm({
+      title: 'Delete Category', message: `Hapus kategori "${cat.name}"?`,
+      confirmText: 'Delete', variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await categoriesAPI.delete(cat.id);
+          loadCategories();
+          showToast('success', 'Kategori berhasil dihapus');
+        } catch (err: any) { showToast('error', err.response?.data?.detail || 'Failed to delete category'); }
+      },
+    });
+  };
+
+  const resetCatForm = () => { setEditingCat(null); setCatName(''); setCatDesc(''); };
+
   const formatFileSize = (bytes: number) => bytes < 1024 ? bytes + ' B' : bytes < 1024 * 1024 ? (bytes / 1024).toFixed(1) + ' KB' : (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 
   const formatDate = (isoString: string) => new Date(isoString).toLocaleString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -221,14 +282,17 @@ export default function SettingsPage() {
             <p className="text-text-secondary text-sm mt-1">Kelola konfigurasi sistem</p>
           </div>
 
-          <div className="flex gap-2 mb-6 border-b border-border-default">
-            <button onClick={() => setActiveTab('database')} className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'database' ? 'text-accent border-b-2 border-accent' : 'text-text-secondary hover:text-text-primary'}`}>
+          <div className="flex gap-2 mb-6 border-b border-border-default overflow-x-auto">
+            <button onClick={() => setActiveTab('database')} className={`px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'database' ? 'text-accent border-b-2 border-accent' : 'text-text-secondary hover:text-text-primary'}`}>
               <Database className="w-4 h-4 inline mr-2" />Database
             </button>
-            <button onClick={() => setActiveTab('departments')} className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'departments' ? 'text-accent border-b-2 border-accent' : 'text-text-secondary hover:text-text-primary'}`}>
+            <button onClick={() => setActiveTab('departments')} className={`px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'departments' ? 'text-accent border-b-2 border-accent' : 'text-text-secondary hover:text-text-primary'}`}>
               <Building2 className="w-4 h-4 inline mr-2" />Departemen
             </button>
-            <button onClick={() => setActiveTab('ai')} className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'ai' ? 'text-accent border-b-2 border-accent' : 'text-text-secondary hover:text-text-primary'}`}>
+            <button onClick={() => setActiveTab('categories')} className={`px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'categories' ? 'text-accent border-b-2 border-accent' : 'text-text-secondary hover:text-text-primary'}`}>
+              <Tag className="w-4 h-4 inline mr-2" />Kategori
+            </button>
+            <button onClick={() => setActiveTab('ai')} className={`px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'ai' ? 'text-accent border-b-2 border-accent' : 'text-text-secondary hover:text-text-primary'}`}>
               <TestTube className="w-4 h-4 inline mr-2" />AI Config
             </button>
           </div>
@@ -316,6 +380,50 @@ export default function SettingsPage() {
                       <div className="flex gap-2">
                         <Button variant="secondary" size="sm" onClick={() => handleEditDepartment(dept)}><Edit2 className="w-4 h-4" /></Button>
                         <Button variant="secondary" size="sm" className="text-danger" onClick={() => handleDeleteDepartment(dept)}><Trash2 className="w-4 h-4" /></Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'categories' && (
+            <div className="space-y-6">
+              <div className="bg-bg-surface border border-border-default rounded-radius-lg p-6">
+                <h3 className="font-medium text-text-primary mb-4">{editingCat ? 'Edit Kategori' : 'Tambah Kategori Baru'}</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-text-primary mb-2">Nama Kategori *</label>
+                    <Input value={catName} onChange={(e) => setCatName(e.target.value)} placeholder="Contoh: Transportasi, Makan Siang, Bahan Bangunan" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-text-primary mb-2">Deskripsi</label>
+                    <textarea value={catDesc} onChange={(e) => setCatDesc(e.target.value)} placeholder="Deskripsi kategori (opsional)" rows={2} className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md text-sm resize-none" />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={editingCat ? handleUpdateCategory : handleAddCategory} isLoading={catSaving}>
+                      <Save className="w-4 h-4 mr-2" />{editingCat ? 'Simpan Perubahan' : 'Tambah'}
+                    </Button>
+                    {editingCat && <Button variant="secondary" onClick={resetCatForm}><X className="w-4 h-4 mr-2" />Batal</Button>}
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-bg-surface border border-border-default rounded-radius-lg p-6">
+                <h3 className="font-medium text-text-primary mb-4">Daftar Kategori</h3>
+                {catLoading ? <p className="text-text-secondary text-center py-4">Memuat...</p>
+                 : categories.length === 0 ? <p className="text-text-secondary text-center py-4">Belum ada kategori</p>
+                 : <div className="space-y-3">
+                  {categories.map((cat) => (
+                    <div key={cat.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 p-4 bg-bg-subtle rounded-radius-md">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-text-primary">{cat.name}</p>
+                        <p className="text-xs text-text-secondary mt-1">{cat.description || 'Tidak ada deskripsi'}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="secondary" size="sm" onClick={() => handleEditCategory(cat)}><Edit2 className="w-4 h-4" /></Button>
+                        <Button variant="secondary" size="sm" className="text-danger" onClick={() => handleDeleteCategory(cat)}><Trash2 className="w-4 h-4" /></Button>
                       </div>
                     </div>
                   ))}

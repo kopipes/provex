@@ -157,7 +157,7 @@ class ClaimBase(BaseModel):
     merchant_name: str = Field(..., min_length=1, max_length=255)
     transaction_date: date
     amount: float = Field(..., gt=0)
-    category: ClaimCategory
+    category: str  # Dynamic category - stored as string from Category table
     description: Optional[str] = None
     receipt_number: Optional[str] = None
 
@@ -171,7 +171,7 @@ class ClaimUpdate(BaseModel):
     merchant_name: Optional[str] = None
     transaction_date: Optional[date] = None
     amount: Optional[float] = None
-    category: Optional[ClaimCategory] = None
+    category: Optional[str] = None
     description: Optional[str] = None
     receipt_number: Optional[str] = None
     receipt_image_path: Optional[str] = None

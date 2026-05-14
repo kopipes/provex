@@ -10,7 +10,7 @@ import { formatDate } from '@/lib/utils';
 import { usersAPI, departmentsAPI } from '@/lib/api';
 import type { User, Department } from '@/lib/types';
 import { useNotification } from '@/components/Toast';
-import { UserPlus, Search } from 'lucide-react';
+import { UserPlus, Search, Trash2 } from 'lucide-react';
 
 export default function AdminUsersPage() {
   const { user } = useAuth();
@@ -22,8 +22,9 @@ export default function AdminUsersPage() {
   const [deptLoading, setDeptLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [actionUser, setActionUser] = useState<User | null>(null);
-  const [actionType, setActionType] = useState<'status' | 'role' | 'edit' | 'add' | null>(null);
+  const [actionType, setActionType] = useState<'status' | 'role' | 'edit' | 'add' | 'delete' | null>(null);
   const [newStatus, setNewStatus] = useState('');
   const [newRole, setNewRole] = useState('');
   const [editName, setEditName] = useState('');
@@ -43,14 +44,23 @@ export default function AdminUsersPage() {
   }, []);
 
   useEffect(() => {
-    if (searchQuery.trim() === '') setFilteredUsers(users);
-    else {
-      const query = searchQuery.toLowerCase();
-      setFilteredUsers(users.filter((u) =>
-        u.name.toLowerCase().includes(query) || u.email.toLowerCase().includes(query) || (u.department && u.department.toLowerCase().includes(query))
-      ));
+    let filtered = users;
+    
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((u) => u.status === statusFilter);
     }
-  }, [searchQuery, users]);
+    
+    // Apply search filter
+    if (searchQuery.trim() !== '') {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((u) =>
+        u.name.toLowerCase().includes(query) || u.email.toLowerCase().includes(query) || (u.department && u.department.toLowerCase().includes(query))
+      );
+    }
+    
+    setFilteredUsers(filtered);
+  }, [searchQuery, statusFilter, users]);
 
   const loadDepartments = async () => {
     setDeptLoading(true);
@@ -130,6 +140,31 @@ export default function AdminUsersPage() {
     finally { setSubmitting(false); }
   };
 
+  const handleDeleteUser = (u: User) => {
+    setActionUser(u);
+    setActionType('delete');
+  };
+
+  const confirmDeleteUser = () => {
+    if (!actionUser) return;
+    showConfirm({
+      title: 'Hapus User',
+      message: `Yakin ingin menghapus user "${actionUser.name}"? User tidak dapat login setelah dihapus.`,
+      confirmText: 'Hapus',
+      onConfirm: async () => {
+        setSubmitting(true);
+        try {
+          await usersAPI.delete(actionUser.id);
+          setActionUser(null);
+          setActionType(null);
+          loadUsers();
+          showToast('success', 'User berhasil dihapus');
+        } catch (err: any) { showToast('error', err.response?.data?.detail || 'Failed to delete user'); }
+        finally { setSubmitting(false); }
+      },
+    });
+  };
+
   return (
     <div className="flex min-h-screen bg-bg-base">
       <Sidebar />
@@ -145,9 +180,37 @@ export default function AdminUsersPage() {
                 <UserPlus className="w-4 h-4 mr-2" />Tambah User
               </Button>
             </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-              <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Cari nama, email, atau departemen..." className="w-full pl-10 pr-4 py-2 bg-bg-surface border border-border-default rounded-radius-md text-sm" />
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Cari nama, email, atau departemen..." className="w-full pl-10 pr-4 py-2 bg-bg-surface border border-border-default rounded-radius-md text-sm" />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  className={`px-4 py-2 rounded-radius-md text-sm font-medium transition-colors ${statusFilter === 'all' ? 'bg-accent text-white' : 'bg-bg-surface border border-border-default text-text-secondary hover:bg-bg-subtle'}`}
+                >
+                  Semua
+                </button>
+                <button
+                  onClick={() => setStatusFilter('active')}
+                  className={`px-4 py-2 rounded-radius-md text-sm font-medium transition-colors ${statusFilter === 'active' ? 'bg-accent text-white' : 'bg-bg-surface border border-border-default text-text-secondary hover:bg-bg-subtle'}`}
+                >
+                  Active
+                </button>
+                <button
+                  onClick={() => setStatusFilter('pending')}
+                  className={`px-4 py-2 rounded-radius-md text-sm font-medium transition-colors ${statusFilter === 'pending' ? 'bg-accent text-white' : 'bg-bg-surface border border-border-default text-text-secondary hover:bg-bg-subtle'}`}
+                >
+                  Pending
+                </button>
+                <button
+                  onClick={() => setStatusFilter('inactive')}
+                  className={`px-4 py-2 rounded-radius-md text-sm font-medium transition-colors ${statusFilter === 'inactive' ? 'bg-accent text-white' : 'bg-bg-surface border border-border-default text-text-secondary hover:bg-bg-subtle'}`}
+                >
+                  Inactive
+                </button>
+              </div>
             </div>
           </div>
 
@@ -159,7 +222,9 @@ export default function AdminUsersPage() {
             </div>
           ) : filteredUsers.length === 0 ? (
             <div className="bg-bg-surface border border-border-default rounded-radius-lg p-8 text-center">
-              <p className="text-text-secondary">{searchQuery ? 'Tidak ada pengguna ditemukan' : 'Belum ada pengguna'}</p>
+              <p className="text-text-secondary">
+                {searchQuery || statusFilter !== 'all' ? 'Tidak ada pengguna ditemukan' : 'Belum ada pengguna'}
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -186,6 +251,11 @@ export default function AdminUsersPage() {
                     <Button variant="secondary" size="sm" onClick={() => handleEditUser(u)} className="flex-1">Edit</Button>
                     <Button variant="secondary" size="sm" onClick={() => { setActionUser(u); setActionType('status'); setNewStatus(u.status); }} className="flex-1">Status</Button>
                     <Button variant="secondary" size="sm" onClick={() => { setActionUser(u); setActionType('role'); setNewRole(u.role); }} className="flex-1">Role</Button>
+                    {user?.role === 'admin' && (
+                      <Button variant="destructive" size="sm" onClick={() => handleDeleteUser(u)} className="flex-1">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -272,6 +342,22 @@ export default function AdminUsersPage() {
             <div className="flex flex-col sm:flex-row justify-end gap-2">
               <Button variant="secondary" onClick={() => setActionUser(null)} className="w-full sm:w-auto">Batal</Button>
               <Button onClick={handleSaveEdit} isLoading={submitting} className="w-full sm:w-auto">Simpan</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {actionUser && actionType === 'delete' && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[400px]">
+            <h2 className="text-lg font-semibold text-text-primary mb-4">Hapus User</h2>
+            <p className="text-text-secondary mb-6">
+              Yakin ingin menghapus user <strong className="text-text-primary">{actionUser.name}</strong>? 
+              User tidak dapat login setelah dihapus.
+            </p>
+            <div className="flex flex-col sm:flex-row justify-end gap-2">
+              <Button variant="secondary" onClick={() => { setActionUser(null); setActionType(null); }} className="w-full sm:w-auto">Batal</Button>
+              <Button variant="destructive" onClick={confirmDeleteUser} isLoading={submitting} className="w-full sm:w-auto">Hapus</Button>
             </div>
           </div>
         </div>

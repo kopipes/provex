@@ -19,6 +19,16 @@ The docker-compose.yml should NOT rebuild from scratch that destroys the DB. The
 2. **VPS deployment** → `git pull` on VPS, then `docker compose up --build -d`
 3. **DB persistence** → DB file is mounted from host, survives container rebuilds
 
+### ⚠️ BEFORE Deploying
+
+**ALWAYS confirm with user first!** Before deploying to VPS after saving changes locally:
+
+1. Show the user the changes made
+2. Confirm if they want to deploy to VPS
+3. Wait for user approval before proceeding with deployment
+
+Do NOT auto-deploy without user confirmation!
+
 ## Database Rules
 
 - Local development: `backend/reimburseeasy.db` (gitignored, don't commit)

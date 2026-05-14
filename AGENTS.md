@@ -393,4 +393,95 @@ CMD ["npm", "start"]
 
 ---
 
+## DEPLOYMENT RULES
+
+### ⚠️ CRITICAL: Source of Truth
+
+- **Application code source of truth**: GitHub repository
+- **Database source of truth**: VPS (server's SQLite file)
+- **NEVER commit database files to Git**
+
+### Safe Deployment Procedure
+
+When deploying to VPS, follow this sequence to ensure rollback capability:
+
+```bash
+# 1. SSH to server
+ssh -i ~/.ssh/id_ed25519 root@72.62.124.109
+cd /var/www/provex
+
+# 2. Check for differences (app or db structure)
+git fetch origin
+LOCAL_COMMIT=$(git rev-parse HEAD)
+REMOTE_COMMIT=$(git rev-parse origin/master)
+
+if [ "$LOCAL_COMMIT" != "$REMOTE_COMMIT" ]; then
+    echo "App changes detected - checking db backup needed..."
+    
+    # Check if backend/models.py or db schema changed
+    if git diff $LOCAL_COMMIT $REMOTE_COMMIT -- backend/app/models.py | grep -q "^diff"; then
+        echo "⚠️ Database schema change detected!"
+        echo "Creating backup before proceeding..."
+        
+        # Create timestamped backup
+        BACKUP_DIR="./backups"
+        mkdir -p $BACKUP_DIR
+        TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+        cp ./backend/reimburseeasy.db "$BACKUP_DIR/db_$TIMESTAMP.sqlite"
+        gzip "$BACKUP_DIR/db_$TIMESTAMP.sqlite"
+        echo "✅ Database backed up to $BACKUP_DIR/db_$TIMESTAMP.sqlite.gz"
+        
+        # Keep only last 5 backups
+        ls -t $BACKUP_DIR/*.gz | tail -n +6 | xargs -r rm
+    fi
+fi
+
+# 3. Pull latest code
+git stash
+git pull origin master
+
+# 4. Rebuild and restart containers
+docker compose down
+docker compose up -d --build
+
+# 5. Reload nginx
+nginx -t && systemctl reload nginx
+
+# 6. Verify deployment
+curl -s https://provex.provaliantgroup.com/api/auth/login -X POST \
+    -H "Content-Type: application/json" \
+    -d '{"email":"admin@reimburseeasy.com","password":"admin123"}' | grep -q access_token \
+    && echo "✅ Deployment successful!" \
+    || echo "❌ Deployment failed - check logs"
+```
+
+### Rollback Procedure
+
+If deployment fails or database is corrupted:
+
+```bash
+# 1. Stop current containers
+docker compose down
+
+# 2. Restore database from backup
+LATEST_BACKUP=$(ls -t backups/db_*.gz | head -1)
+gunzip -k $LATEST_BACKUP
+RESTORED_DB=$(basename $LATEST_BACKUP .gz)
+cp ./backups/$RESTORED_DB ./backend/reimburseeasy.db
+
+# 3. Revert to previous commit
+git reset --hard HEAD~1
+
+# 4. Restart containers
+docker compose up -d
+```
+
+### Database Backup Schedule
+
+- **Automatic**: On every schema change (detected via git diff on models.py)
+- **Manual**: Run `POST /database/backup` via admin panel
+- **Retention**: Keep last 5 backups, auto-delete older ones
+
+---
+
 **END OF AGENTS.md**

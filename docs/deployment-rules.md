@@ -25,6 +25,16 @@ The docker-compose.yml should NOT rebuild from scratch that destroys the DB. The
 - Production VPS: Mounted via volume in docker-compose.yml
 - Backups: Keep local backups, copy to VPS when needed
 
+### ⚠️ BEFORE Changing DB/App Structure
+
+**ALWAYS backup first!** Before any deployment that modifies database schema, models, or app structure:
+
+1. **Backup VPS DB**: `docker exec provex-backend-1 cp /app/reimburseeasy.db /app/reimburseeasy.db.backup.$(date +%Y%m%d_%H%M%S)`
+2. **Backup local DB**: `cp backend/reimburseeasy.db backend/backups/backup_$(date +%Y%m%d_%H%M%S).db`
+3. **Test rollback**: Keep backup files for reverse/rollback if deployment fails
+
+This ensures you can always restore to previous state if something breaks.
+
 ## What Gets Deployed
 
 - ✅ Code from GitHub

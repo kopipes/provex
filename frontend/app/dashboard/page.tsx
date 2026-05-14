@@ -213,29 +213,31 @@ export default function DashboardPage() {
               {recentClaims.length > 0 && (
                 <div>
                   <h2 className="text-base sm:text-lg font-semibold text-text-primary mb-3 sm:mb-4">Klaim Terbaru</h2>
-                  <div className="bg-bg-surface border border-border-default rounded-radius-lg overflow-x-auto">
-                    <table className="w-full min-w-[600px]">
-                      <thead className="bg-bg-muted border-b border-border-default">
-                        <tr>
-                          <th className="text-left px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium text-text-secondary">Merchant</th>
-                          <th className="text-left px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium text-text-secondary hidden sm:table-cell">Project</th>
-                          <th className="text-left px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium text-text-secondary">Amount</th>
-                          <th className="text-left px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium text-text-secondary">Status</th>
-                          <th className="text-left px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium text-text-secondary hidden md:table-cell">Tanggal</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border-default">
-                        {recentClaims.map((claim) => (
-                          <tr key={claim.id} className="hover:bg-bg-muted/50">
-                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-text-primary truncate max-w-[120px] sm:max-w-none">{claim.merchant_name}</td>
-                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-text-secondary hidden sm:table-cell">{claim.project_name || '-'}</td>
-                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium text-text-primary">{formatCurrency(claim.amount)}</td>
-                            <td className="px-3 sm:px-4 py-3"><StatusBadge status={claim.status} /></td>
-                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-text-secondary hidden md:table-cell">{formatDate(claim.created_at)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    {recentClaims.map((claim) => (
+                      <div
+                        key={claim.id}
+                        className="bg-bg-surface border border-border-default rounded-radius-lg p-4 hover:border-accent transition-colors"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <h4 className="font-medium text-text-primary text-sm sm:text-base truncate pr-2">
+                            {claim.merchant_name}
+                          </h4>
+                          <StatusBadge status={claim.status} />
+                        </div>
+                        <p className="text-xs sm:text-sm text-text-secondary mb-3">
+                          {claim.project_name || '-'}
+                        </p>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm sm:text-base font-semibold text-text-primary">
+                            {formatCurrency(claim.amount)}
+                          </span>
+                          <span className="text-xs text-text-muted">
+                            {formatDate(claim.created_at)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}

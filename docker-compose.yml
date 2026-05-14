@@ -8,6 +8,7 @@ services:
     volumes:
       - ./backend/uploads:/app/uploads
       - ./backend/.env:/app/.env
+      - ./backend/reimburseeasy.db:/app/reimburseeasy.db
     restart: unless-stopped
     networks:
       - provex-network

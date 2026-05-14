@@ -9,7 +9,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app.database import engine, Base, SessionLocal
-from app.models import User, Project, ProjectMember, AIConfig, Claim
+from app.models import User, Project, ProjectMember, AIConfig, Claim, Category
 from app.auth import get_password_hash
 from datetime import date, datetime, timedelta
 
@@ -104,9 +104,19 @@ def init_db():
             
             print(f"Created sample projects and assigned members.")
             
-            # Initialize AI config (empty with OCR enabled by default)
-            ai_config = AIConfig(id=1, ocr_enabled=True)
+            # Initialize AI config (empty with OCR disabled by default)
+            ai_config = AIConfig(id=1, ocr_enabled=False)
             db.add(ai_config)
+            
+            # Create default categories
+            default_categories = [
+                Category(name="Makanan", description="Makanan dan minuman"),
+                Category(name="Transport", description="Transportasi dan perjalanan"),
+                Category(name="Akomodasi", description="Penginapan dan hotel"),
+                Category(name="Lain-lain", description="Pengeluaran lainnya"),
+            ]
+            db.add_all(default_categories)
+            print("Created default categories: Makanan, Transport, Akomodasi, Lain-lain")
             
             # Create sample claims for testing
             sample_claims = [

@@ -29,11 +29,27 @@ class ProjectStatus(str, Enum):
     ARCHIVED = "archived"
 
 
-class ClaimCategory(str, Enum):
-    MAKANAN = "Makanan"
-    TRANSPORT = "Transport"
-    AKOMODASI = "Akomodasi"
-    LAIN_LAIN = "Lain-lain"
+# ============ Category Schemas ============
+class CategoryBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = None
+
+
+class CategoryCreate(CategoryBase):
+    pass
+
+
+class CategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+
+class CategoryResponse(CategoryBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 
 # ============ User Schemas ============
@@ -191,7 +207,7 @@ class AIConfigBase(BaseModel):
     base_url: Optional[str] = None
     model_name: Optional[str] = None
     api_key: Optional[str] = None
-    ocr_enabled: bool = True
+    ocr_enabled: bool = False  # Default OFF
 
 
 class AIConfigResponse(BaseModel):

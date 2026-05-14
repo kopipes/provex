@@ -4,7 +4,13 @@ export type UserRole = 'user' | 'manager' | 'admin';
 export type UserStatus = 'pending' | 'active' | 'inactive';
 export type ClaimStatus = 'draft' | 'submitted' | 'revision' | 'approved' | 'rejected';
 export type ProjectStatus = 'active' | 'archived';
-export type ClaimCategory = 'Makanan' | 'Transport' | 'Akomodasi' | 'Lain-lain';
+
+export interface Category {
+  id: number;
+  name: string;
+  description?: string;
+  created_at: string;
+}
 
 export interface User {
   id: number;
@@ -48,7 +54,7 @@ export interface Claim {
   merchant_name: string;
   transaction_date: string;
   amount: number;
-  category: ClaimCategory;
+  category: string;
   description?: string;
   receipt_number?: string;
   status: ClaimStatus;

@@ -177,4 +177,15 @@ export const departmentsAPI = {
   delete: (id: number) => api.delete(`/departments/${id}`),
 };
 
+// Categories API
+export const categoriesAPI = {
+  list: () => api.get<import('./types').Category[]>('/categories'),
+  get: (id: number) => api.get<import('./types').Category>(`/categories/${id}`),
+  create: (data: { name: string; description?: string }) =>
+    api.post<import('./types').Category>('/categories', data),
+  update: (id: number, data: { name?: string; description?: string }) =>
+    api.put<import('./types').Category>(`/categories/${id}`, data),
+  delete: (id: number) => api.delete(`/categories/${id}`),
+};
+
 export default api;

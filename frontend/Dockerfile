@@ -2,14 +2,12 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-ARG NEXT_PUBLIC_API_URL=https://provex.provaliantgroup.com
-
 COPY package*.json ./
 RUN npm install
 
 COPY . .
 
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=/api
 
 RUN npm run build
 

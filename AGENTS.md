@@ -328,4 +328,69 @@ cd frontend && npm install && npm run dev
 
 ---
 
+## DOCKER DEPLOYMENT TROUBLESHOOTING
+
+### ⚠️ CRITICAL: Next.js ENV Variable Precedence Issue
+
+**Problem**: When deploying Next.js with Docker, `ENV` variables in Dockerfile can be OVERRIDDEN by `ARG` defaults during build time. This causes:
+- Hardcoded API URLs that ignore docker-compose environment variables
+- Deployments that work locally but fail in production
+- Debugging nightmare (took ~2 hours to diagnose)
+
+**Symptom**: 
+```bash
+# In docker-compose.yml you set:
+environment:
+  - NEXT_PUBLIC_API_URL=/api
+
+# But the app still uses the hardcoded value from Dockerfile ARG
+NEXT_PUBLIC_API_URL=https://provex.provaliantgroup.com
+```
+
+**Root Cause**: Docker ARG default values are baked into the image at build time. If your Dockerfile has:
+```dockerfile
+ARG NEXT_PUBLIC_API_URL=https://hardcoded.url.com  # ❌ NEVER put default URLs here
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+```
+
+The ENV only gets the value if ARG is passed during build. If not passed, it uses the hardcoded default.
+
+**Solution**: For Next.js frontend Dockerfile:
+```dockerfile
+# ✅ CORRECT: No default value for API URL ARG
+FROM node:22-alpine
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+# Use docker-compose environment variable directly
+ENV NEXT_PUBLIC_API_URL=/api
+
+RUN npm run build
+
+EXPOSE 3000
+ENV NODE_ENV=production
+ENV PORT=3000
+
+CMD ["npm", "start"]
+```
+
+**Key Rules**:
+1. **NEVER put default URLs in Dockerfile ARG for environment variables**
+2. **ARG should be used only for truly optional build-time values**
+3. **For required runtime values, use ENV directly**
+4. **Test deployment locally with docker-compose before pushing**
+
+**Debugging Checklist**:
+- [ ] Check `docker-compose.yml` environment section
+- [ ] Check `frontend/Dockerfile` for hardcoded ARG defaults
+- [ ] Verify the built image: `docker run --rm <image> env | grep NEXT_PUBLIC_API_URL`
+- [ ] Check browser Network tab for actual API calls being made
+- [ ] Check Next.js build output for baked-in values
+
+---
+
 **END OF AGENTS.md**

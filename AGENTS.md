@@ -264,13 +264,19 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 ---
 
-## DEFAULT TEST USERS
+## DEFAULT TEST USERS (LOCAL DEV ONLY)
 
 | Role | Email | Password |
 |------|-------|----------|
 | Admin | admin@reimburseeasy.com | admin123 |
 | Manager | manager@reimburseeasy.com | manager123 |
 | User | user@reimburseeasy.com | user123 |
+
+**⚠️ PRODUCTION USERS (VPS DB) - NEVER OVERWRITE THESE:**
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | kristine@provaliangroup.com | admin123 |
+| Admin | bob@provaliantgroup.com | admin123 |
 
 ---
 
@@ -401,6 +407,19 @@ CMD ["npm", "start"]
 - **Database source of truth**: VPS (server's SQLite file)
 - **NEVER commit database files to Git**
 
+### ⚠️ FORBIDDEN: Using rsync/scp for Database Files
+
+**NEVER use rsync or scp to copy local database files to VPS!**
+
+If you must use rsync for file deployment, ALWAYS exclude database files:
+```bash
+# ✅ CORRECT: Exclude all .db files
+rsync -avz --exclude '*.db' --exclude 'reimburseeasy*.db' ... root@vps:/var/www/provex/
+
+# ❌ WRONG: Will overwrite VPS database with local version
+rsync -avz ... root@vps:/var/www/provex/  # NO!
+```
+
 ### Safe Deployment Procedure
 
 When deploying to VPS, follow this sequence to ensure rollback capability:
@@ -423,7 +442,7 @@ if [ "$LOCAL_COMMIT" != "$REMOTE_COMMIT" ]; then
         echo "⚠️ Database schema change detected!"
         echo "Creating backup before proceeding..."
         
-        # Create timestamped backup
+        # Create timestamped backup BEFORE any DB changes
         BACKUP_DIR="./backups"
         mkdir -p $BACKUP_DIR
         TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -433,10 +452,14 @@ if [ "$LOCAL_COMMIT" != "$REMOTE_COMMIT" ]; then
         
         # Keep only last 5 backups
         ls -t $BACKUP_DIR/*.gz | tail -n +6 | xargs -r rm
+        
+        # Run DB migration (init_db.py will add new columns/tables without losing data)
+        echo "Running database migration..."
+        docker exec provex-backend-1 python init_db.py
     fi
 fi
 
-# 3. Pull latest code
+# 3. Pull latest code from GitHub (NOT rsync!)
 git stash
 git pull origin master
 
@@ -450,10 +473,25 @@ nginx -t && systemctl reload nginx
 # 6. Verify deployment
 curl -s https://provex.provaliantgroup.com/api/auth/login -X POST \
     -H "Content-Type: application/json" \
-    -d '{"email":"admin@reimburseeasy.com","password":"admin123"}' | grep -q access_token \
+    -d '{"email":"kristine@provaliangroup.com","password":"admin123"}' | grep -q access_token \
     && echo "✅ Deployment successful!" \
     || echo "❌ Deployment failed - check logs"
 ```
+
+### ⚠️ DB Schema Change Rules
+
+When making changes to `backend/app/models.py`:
+1. **ALWAYS backup VPS DB first** before deployment
+2. **Use init_db.py** - it uses SQLAlchemy `create_all()` which only adds new tables/columns, NEVER deletes existing data
+3. **Test locally first** with local DB that has sample data
+4. **Never drop tables** - only add columns/tables
+5. **If rollback needed**: restore backup and revert git commit
+
+**Current DB state on VPS (DO NOT LOSE):**
+- 5 users (kristine, bob, admin@reimburseeasy.com, manager@reimburseeasy.com, user@reimburseeasy.com)
+- 3 projects (Proyek Gedung A, Business Trip Singapore, AI Projects)
+- 7 claims with various statuses
+- 3 categories
 
 ### Rollback Procedure
 

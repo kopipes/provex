@@ -27,7 +27,9 @@ export default function ProjectsPage() {
     try {
       setLoading(true);
       const response = await projectsAPI.list({ search: search || undefined });
-      setProjects(response.data);
+      // Only show active projects
+      const activeProjects = response.data.filter((p: Project) => p.status === 'active');
+      setProjects(activeProjects);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load projects');
     } finally {

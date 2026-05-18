@@ -28,6 +28,7 @@ export default function AdminProjectsPage() {
     end_date: '',
     budget_limit: '',
     no_limit: false,
+    status: 'active',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -87,7 +88,7 @@ export default function AdminProjectsPage() {
     
     setSubmitting(true);
     try {
-      const data = {
+      const data: any = {
         name: formData.name,
         description: formData.description || undefined,
         start_date: formData.start_date,
@@ -96,6 +97,7 @@ export default function AdminProjectsPage() {
       };
       
       if (editingProject) {
+        data.status = formData.status;
         await projectsAPI.update(editingProject.id, data);
         showToast('success', 'Project berhasil diupdate');
       } else {
@@ -121,6 +123,7 @@ export default function AdminProjectsPage() {
       end_date: '',
       budget_limit: '',
       no_limit: false,
+      status: 'active',
     });
     setErrors({});
     setShowForm(true);
@@ -136,6 +139,7 @@ export default function AdminProjectsPage() {
       end_date: project.end_date || '',
       budget_limit: budgetValue,
       no_limit: project.budget_limit == null,
+      status: project.status || 'active',
     });
     setErrors({});
     setShowForm(true);
@@ -162,7 +166,7 @@ export default function AdminProjectsPage() {
   const resetForm = () => {
     setShowForm(false);
     setEditingProject(null);
-    setFormData({ name: '', description: '', start_date: '', end_date: '', budget_limit: '', no_limit: false });
+    setFormData({ name: '', description: '', start_date: '', end_date: '', budget_limit: '', no_limit: false, status: 'active' });
     setErrors({});
   };
 
@@ -346,6 +350,19 @@ export default function AdminProjectsPage() {
                   className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md disabled:opacity-50"
                 />
               </div>
+              {editingProject && (
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-2">Status</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => updateFormData('status', e.target.value)}
+                    className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md"
+                  >
+                    <option value="active">Aktif</option>
+                    <option value="archived">Diarsipkan</option>
+                  </select>
+                </div>
+              )}
               <div className="flex justify-end gap-4 pt-4">
                 <Button type="button" variant="secondary" onClick={resetForm}>Batal</Button>
                 <Button type="submit" isLoading={submitting}>Simpan</Button>

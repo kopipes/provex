@@ -53,7 +53,9 @@ export default function NewClaimPage() {
   const loadProjects = async () => {
     try {
       const response = await projectsAPI.list();
-      setProjects(response.data);
+      // Only show active projects
+      const activeProjects = response.data.filter((p: Project) => p.status === 'active');
+      setProjects(activeProjects);
     } catch (err) {
       console.error('Failed to load projects');
     } finally {

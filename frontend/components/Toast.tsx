@@ -109,7 +109,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<{ type: ToastType; message: string } | null>(null);
   const [confirmOptions, setConfirmOptions] = useState<ConfirmOptions | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
-  const onConfirmRef = useRef<(() => Promise<void>) | null>(null);
+  const onConfirmRef = useRef<(() => void | Promise<void>) | null>(null);
 
   const showToast = useCallback((type: ToastType, message: string) => {
     setToast({ type, message });

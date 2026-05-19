@@ -182,6 +182,7 @@ def delete_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
 ):
+    """Soft delete: set user status to inactive (user cannot login but data is preserved)"""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(
@@ -198,6 +199,32 @@ def delete_user(
     
     # Soft delete: set status to inactive instead
     user.status = "inactive"
+    db.commit()
+    return None
+
+
+@router.delete("/{user_id}/permanent", status_code=status.HTTP_204_NO_CONTENT)
+def permanent_delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Hard delete: completely remove user from database"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Prevent admin from deleting themselves
+    if current_user.id == user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete your own account"
+        )
+    
+    db.delete(user)
     db.commit()
     return None
 

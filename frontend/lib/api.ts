@@ -36,7 +36,7 @@ export const authAPI = {
 
 // Users API
 export const usersAPI = {
-  list: () => api.get<User[]>('/users'),
+  list: () => api.get<User[]>('/users?_t=' + Date.now()),
   get: (id: number) => api.get<User>(`/users/${id}`),
   create: (data: { name: string; email: string; password: string; department?: string; role?: string }) =>
     api.post<User>('/users', data),
@@ -49,6 +49,7 @@ export const usersAPI = {
   updatePassword: (id: number, password: string) =>
     api.post(`/users/${id}/password`, { password }),
   delete: (id: number) => api.delete(`/users/${id}`),
+  permanentDelete: (id: number) => api.delete(`/users/${id}/permanent`),
 };
 
 // Projects API

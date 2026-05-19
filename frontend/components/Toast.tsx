@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useState, createContext, useContext, ReactNode, useCallback } from 'react';
 import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'info';
@@ -48,7 +48,6 @@ export function Toast({ type, message, onClose, duration = 5000 }: ToastProps) {
   );
 }
 
-// Confirm Modal component
 interface ConfirmOptions {
   title: string;
   message: string;
@@ -67,7 +66,7 @@ export function ConfirmModal({
   variant = 'default',
   onConfirm,
   onCancel,
-}: ConfirmOptions) {
+}: ConfirmOptions & { isLoading?: boolean }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[400px] shadow-xl">
@@ -82,6 +81,7 @@ export function ConfirmModal({
           </button>
           <button
             onClick={onConfirm}
+            disabled={variant === 'danger'}
             className={`px-4 py-2 text-sm font-medium rounded-radius-md transition-colors ${
               variant === 'danger'
                 ? 'bg-danger text-white hover:bg-danger/90'
@@ -98,9 +98,6 @@ export function ConfirmModal({
   );
 }
 
-// Notification context for global use
-import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
-
 interface NotificationContextType {
   showToast: (type: ToastType, message: string) => void;
   showConfirm: (options: ConfirmOptions) => void;
@@ -110,15 +107,37 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<{ type: ToastType; message: string } | null>(null);
-  const [confirm, setConfirm] = useState<ConfirmOptions | null>(null);
+  const [confirmOptions, setConfirmOptions] = useState<ConfirmOptions | null>(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const onConfirmRef = useRef<(() => Promise<void>) | null>(null);
 
   const showToast = useCallback((type: ToastType, message: string) => {
     setToast({ type, message });
   }, []);
 
   const showConfirm = useCallback((options: ConfirmOptions) => {
-    setConfirm(options);
+    onConfirmRef.current = options.onConfirm;
+    setConfirmOptions(options);
   }, []);
+
+  const handleConfirm = async () => {
+    if (onConfirmRef.current) {
+      setConfirmLoading(true);
+      try {
+        await onConfirmRef.current();
+      } finally {
+        setConfirmLoading(false);
+        setConfirmOptions(null);
+      }
+    }
+  };
+
+  const handleCancel = () => {
+    if (confirmOptions?.onCancel) {
+      confirmOptions.onCancel();
+    }
+    setConfirmOptions(null);
+  };
 
   return (
     <NotificationContext.Provider value={{ showToast, showConfirm }}>
@@ -130,21 +149,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           onClose={() => setToast(null)}
         />
       )}
-      {confirm && (
+      {confirmOptions && (
         <ConfirmModal
-          title={confirm.title}
-          message={confirm.message}
-          confirmText={confirm.confirmText}
-          cancelText={confirm.cancelText}
-          variant={confirm.variant}
-          onConfirm={() => {
-            confirm.onConfirm();
-            setConfirm(null);
-          }}
-          onCancel={() => {
-            confirm.onCancel?.();
-            setConfirm(null);
-          }}
+          title={confirmOptions.title}
+          message={confirmOptions.message}
+          confirmText={confirmOptions.confirmText}
+          cancelText={confirmOptions.cancelText}
+          variant={confirmOptions.variant}
+          onConfirm={handleConfirm}
+          onCancel={handleCancel}
+          isLoading={confirmLoading}
         />
       )}
     </NotificationContext.Provider>

@@ -145,24 +145,29 @@ export default function AdminUsersPage() {
     setActionType('delete');
   };
 
-  const confirmDeleteUser = () => {
+  const confirmDeleteUser = async (hardDelete: boolean = false) => {
     if (!actionUser) return;
-    showConfirm({
-      title: 'Hapus User',
-      message: `Yakin ingin menghapus user "${actionUser.name}"? User tidak dapat login setelah dihapus.`,
-      confirmText: 'Hapus',
-      onConfirm: async () => {
-        setSubmitting(true);
-        try {
-          await usersAPI.delete(actionUser.id);
-          setActionUser(null);
-          setActionType(null);
-          loadUsers();
-          showToast('success', 'User berhasil dihapus');
-        } catch (err: any) { showToast('error', err.response?.data?.detail || 'Failed to delete user'); }
-        finally { setSubmitting(false); }
-      },
-    });
+    const userId = actionUser.id;
+    const userName = actionUser.name;
+    setSubmitting(true);
+    try {
+      if (hardDelete) {
+        await usersAPI.permanentDelete(userId);
+        showToast('success', `User "${userName}" berhasil dihapus permanen`);
+      } else {
+        await usersAPI.delete(userId);
+        showToast('success', `User "${userName}" berhasil dinonaktifkan`);
+        setStatusFilter('inactive');
+      }
+      setActionUser(null);
+      setActionType(null);
+      await loadUsers();
+    } catch (err: any) {
+      console.error('Delete error:', err);
+      showToast('error', err.response?.data?.detail || 'Failed to delete user');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -355,13 +360,19 @@ export default function AdminUsersPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-bg-surface rounded-radius-lg p-6 w-full max-w-[400px]">
             <h2 className="text-lg font-semibold text-text-primary mb-4">Hapus User</h2>
-            <p className="text-text-secondary mb-6">
-              Yakin ingin menghapus user <strong className="text-text-primary">{actionUser.name}</strong>? 
-              User tidak dapat login setelah dihapus.
+            <p className="text-text-secondary mb-4">
+              Yakin ingin menghapus user <strong className="text-text-primary">{actionUser.name}</strong>?
             </p>
+            <div className="bg-warning/10 border border-warning/30 rounded-radius-md p-3 mb-4">
+              <p className="text-sm text-text-secondary">
+                <strong>Nonaktifkan:</strong> User tidak bisa login, tapi datanya tetap tersimpan.<br/>
+                <strong>Hapus Permanen:</strong> User dan semua datanya dihapus selamanya.
+              </p>
+            </div>
             <div className="flex flex-col sm:flex-row justify-end gap-2">
               <Button variant="secondary" onClick={() => { setActionUser(null); setActionType(null); }} className="w-full sm:w-auto">Batal</Button>
-              <Button variant="destructive" onClick={confirmDeleteUser} isLoading={submitting} className="w-full sm:w-auto">Hapus</Button>
+              <Button variant="secondary" onClick={() => confirmDeleteUser(false)} isLoading={submitting} className="w-full sm:w-auto">Nonaktifkan</Button>
+              <Button variant="destructive" onClick={() => confirmDeleteUser(true)} isLoading={submitting} className="w-full sm:w-auto">Hapus Permanen</Button>
             </div>
           </div>
         </div>

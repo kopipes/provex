@@ -178,15 +178,16 @@ def export_csv(
     period: str = Query("monthly"),
     project_id: Optional[int] = Query(None),
     status: Optional[str] = Query(None),
-    start_date: Optional[datetime] = Query(None),
-    end_date: Optional[datetime] = Query(None),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_manager_or_admin)
 ):
     # Use custom date range if provided, otherwise use period filter
     if start_date and end_date:
-        start = start_date
-        end = end_date
+        from datetime import date as date_type
+        start = datetime.strptime(start_date, "%Y-%m-%d")
+        end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
     else:
         start, end = get_date_range(period)
     

@@ -43,7 +43,7 @@ export default function AdminClaimsPage() {
 
   useEffect(() => {
     loadData();
-  }, [filter, projectFilter]);
+  }, [filter, projectFilter, exportStartDate, exportEndDate]);
 
   useEffect(() => {
     filterClaims();
@@ -52,13 +52,26 @@ export default function AdminClaimsPage() {
   const loadData = async () => {
     try {
       setLoading(true);
+      const params: any = { status: filter || undefined, project_id: projectFilter };
+      
+      // Add date range filter if both dates are set
+      if (exportStartDate && exportEndDate) {
+        params.start_date = exportStartDate;
+        params.end_date = exportEndDate;
+      }
+      
+      console.log('Loading claims with params:', params);
+      console.log('Date range:', exportStartDate, 'to', exportEndDate);
+      
       const [claimsRes, projectsRes] = await Promise.all([
-        claimsAPI.list({ status: filter || undefined, project_id: projectFilter }),
+        claimsAPI.list(params),
         projectsAPI.list()
       ]);
+      console.log('API Response:', claimsRes.data.length, 'claims');
       setClaims(claimsRes.data);
       setProjects(projectsRes.data);
     } catch (err: any) {
+      console.error('API Error:', err);
       setError(err.response?.data?.detail || 'Failed to load claims');
     } finally {
       setLoading(false);

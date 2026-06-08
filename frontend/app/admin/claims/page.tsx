@@ -20,7 +20,7 @@ export default function AdminClaimsPage() {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('');
   const [projectFilter, setProjectFilter] = useState<number | undefined>();
-  const [periodFilter, setPeriodFilter] = useState('monthly');
+  const [periodFilter, setPeriodFilter] = useState('all');
   const [exportStartDate, setExportStartDate] = useState('');
   const [exportEndDate, setExportEndDate] = useState('');
   const [actionClaim, setActionClaim] = useState<Claim | null>(null);

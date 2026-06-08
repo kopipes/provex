@@ -47,6 +47,9 @@ def get_analytics_overview(
     start, end = get_date_range(period)
     
     query = db.query(Claim).filter(
+        Claim.transaction_date >= start_date,
+        Claim.transaction_date <= end_date
+    ) if start_date and end_date else db.query(Claim).filter(
         Claim.created_at >= start,
         Claim.created_at <= end
     )
@@ -191,10 +194,17 @@ def export_csv(
     else:
         start, end = get_date_range(period)
     
-    query = db.query(Claim).filter(
-        Claim.created_at >= start,
-        Claim.created_at <= end
-    )
+    # Use transaction_date for filtering when custom date range provided
+    if start_date and end_date:
+        query = db.query(Claim).filter(
+            Claim.transaction_date >= start,
+            Claim.transaction_date <= end
+        )
+    else:
+        query = db.query(Claim).filter(
+            Claim.created_at >= start,
+            Claim.created_at <= end
+        )
     
     if project_id:
         query = query.filter(Claim.project_id == project_id)

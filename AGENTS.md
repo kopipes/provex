@@ -69,7 +69,7 @@ draft → submitted → approved/rejected/revision
 
 ### 5. FILE UPLOAD RULES
 - **Max size**: 5MB
-- **Allowed formats**: .jpg, .jpeg, .png only
+- **Allowed formats**: .jpg, .jpeg, .png, .pdf
 - **Storage**: `backend/uploads/` (local filesystem)
 - **Path stored**: `claims.receipt_image_path`
 

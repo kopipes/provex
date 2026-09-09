@@ -8,7 +8,7 @@ import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { uploadAPI, projectsAPI, claimsAPI, aiConfigAPI, categoriesAPI } from '@/lib/api';
 import type { Project, Category } from '@/lib/types';
-import { Camera, Upload, Loader2 } from 'lucide-react';
+import { Camera, Upload, Loader2, FileText } from 'lucide-react';
 
 export default function NewClaimPage() {
   const router = useRouter();
@@ -133,15 +133,21 @@ export default function NewClaimPage() {
     }
   };
 
+  const isPdf = (file: File) => file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
   const processFile = async (file: File) => {
     setReceiptFile(file);
     
-    // Show preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setReceiptPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    // Show preview — PDF can't be rendered as <img>, use placeholder
+    if (isPdf(file)) {
+      setReceiptPreview('pdf');
+    } else {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setReceiptPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
     
     // Upload file
     setUploadingFile(true);
@@ -151,8 +157,8 @@ export default function NewClaimPage() {
       const uploadResponse = await uploadAPI.uploadReceipt(file);
       setUploadedPath(uploadResponse.data.path);
       
-      // Only extract data if OCR is enabled
-      if (ocrEnabled) {
+      // Only extract data if OCR is enabled and file is an image (not PDF)
+      if (ocrEnabled && !isPdf(file)) {
         // Convert to base64 for OCR
         const base64 = await fileToBase64(file);
         
@@ -261,7 +267,7 @@ export default function NewClaimPage() {
               <input
                 type="file"
                 ref={fileInputRef}
-                accept="image/*"
+                accept="image/*,.pdf"
                 onChange={handleFileChange}
                 className="hidden"
               />
@@ -282,8 +288,8 @@ export default function NewClaimPage() {
                       <Upload className="w-8 h-8 text-accent" />
                     </div>
                     <p className="font-medium text-text-primary">Upload dari Galeri</p>
-                    <p className="text-sm mt-1">Pilih foto struk atau kwitansi</p>
-                    <p className="text-xs text-text-muted mt-2">PNG, JPG, atau JPEG (maks. 5MB)</p>
+                    <p className="text-sm mt-1">Pilih foto struk, kwitansi, atau PDF</p>
+                    <p className="text-xs text-text-muted mt-2">PNG, JPG, JPEG, atau PDF (maks. 5MB)</p>
                   </div>
                 )}
               </button>
@@ -356,15 +362,21 @@ export default function NewClaimPage() {
                 </button>
               </div>
               <div className="flex items-center gap-4">
-                <img 
-                  src={receiptPreview} 
-                  alt="Receipt" 
-                  className="w-20 h-20 object-cover rounded-radius-md"
-                />
+                {receiptPreview === 'pdf' ? (
+                  <div className="w-20 h-20 bg-bg-subtle rounded-radius-md flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-10 h-10 text-accent" />
+                  </div>
+                ) : (
+                  <img
+                    src={receiptPreview}
+                    alt="Receipt"
+                    className="w-20 h-20 object-cover rounded-radius-md"
+                  />
+                )}
                 <div className="flex-1">
                   <p className="text-sm font-medium text-text-primary truncate">{receiptFile?.name}</p>
                   {uploadedPath && (
-                    <p className="text-xs text-success mt-1">✓ Foto berhasil diupload</p>
+                    <p className="text-xs text-success mt-1">✓ File berhasil diupload</p>
                   )}
                 </div>
               </div>

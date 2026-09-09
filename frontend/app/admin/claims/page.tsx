@@ -406,11 +406,19 @@ export default function AdminClaimsPage() {
               {selectedClaim.receipt_image_path && (
                 <div>
                   <span className="text-text-muted text-sm block mb-2">Bukti Kwitansi</span>
-                  <img
-                    src={`http://localhost:8000${selectedClaim.receipt_image_path}`}
-                    alt="Receipt"
-                    className="max-w-full rounded-lg border border-border-default"
-                  />
+                  {selectedClaim.receipt_image_path.toLowerCase().endsWith('.pdf') ? (
+                    <iframe
+                      src={`/api${selectedClaim.receipt_image_path}`}
+                      className="w-full h-96 rounded-lg border border-border-default"
+                      title="PDF Preview"
+                    />
+                  ) : (
+                    <img
+                      src={`/api${selectedClaim.receipt_image_path}`}
+                      alt="Receipt"
+                      className="w-full max-h-96 object-contain rounded-lg border border-border-default bg-bg-subtle"
+                    />
+                  )}
                 </div>
               )}
 

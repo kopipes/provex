@@ -102,7 +102,7 @@ export default function HistoryPage() {
       receipt_number: claim.receipt_number || '',
     });
     setEditImageFile(null);
-    setEditImagePreview(claim.receipt_image_path ? `http://localhost:8000${claim.receipt_image_path}` : null);
+    setEditImagePreview(claim.receipt_image_path ? `/api${claim.receipt_image_path}` : null);
   };
 
   const handleEditClaim = async () => {
@@ -152,11 +152,15 @@ export default function HistoryPage() {
     const file = e.target.files?.[0];
     if (file) {
       setEditImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        setEditImagePreview(URL.createObjectURL(file));
+      } else {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setEditImagePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -357,11 +361,19 @@ export default function HistoryPage() {
               {selectedClaim.receipt_image_path && (
                 <div>
                   <span className="text-text-muted text-sm block mb-2">Bukti Kwitansi</span>
-                  <img
-                    src={`http://localhost:8000${selectedClaim.receipt_image_path}`}
-                    alt="Receipt"
-                    className="max-w-full rounded-lg border border-border-default"
-                  />
+                  {selectedClaim.receipt_image_path.toLowerCase().endsWith('.pdf') ? (
+                    <iframe
+                      src={`/api${selectedClaim.receipt_image_path}`}
+                      className="w-full h-96 rounded-lg border border-border-default"
+                      title="PDF Preview"
+                    />
+                  ) : (
+                    <img
+                      src={`/api${selectedClaim.receipt_image_path}`}
+                      alt="Receipt"
+                      className="w-full max-h-96 object-contain rounded-lg border border-border-default bg-bg-subtle"
+                    />
+                  )}
                 </div>
               )}
 
@@ -454,17 +466,21 @@ export default function HistoryPage() {
                 <div className="border border-border-default rounded-radius-md overflow-hidden bg-bg-subtle">
                   {editImagePreview ? (
                     <div className="relative">
-                      <img src={editImagePreview} alt="Preview" className="w-full h-40 object-contain" />
+                      {editImagePreview.toLowerCase().endsWith('.pdf') || (editImageFile?.type === 'application/pdf') ? (
+                        <iframe src={editImagePreview} className="w-full h-40" title="PDF Preview" />
+                      ) : (
+                        <img src={editImagePreview} alt="Preview" className="w-full h-40 object-contain" />
+                      )}
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
                         <label className="flex items-center justify-center gap-2 text-white text-sm cursor-pointer">
                           <Upload className="w-4 h-4" />
-                          Ganti Gambar
-                          <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                          Ganti File
+                          <input type="file" accept="image/*,.pdf" onChange={handleImageChange} className="hidden" />
                         </label>
                       </div>
                       <button
                         type="button"
-                        onClick={() => { setEditImageFile(null); setEditImagePreview(editingClaim?.receipt_image_path ? `http://localhost:8000${editingClaim.receipt_image_path}` : null); }}
+                        onClick={() => { setEditImageFile(null); setEditImagePreview(editingClaim?.receipt_image_path ? `/api${editingClaim.receipt_image_path}` : null); }}
                         className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full hover:bg-black/70"
                       >
                         <X className="w-4 h-4" />
@@ -473,9 +489,9 @@ export default function HistoryPage() {
                   ) : (
                     <label className="flex flex-col items-center justify-center py-8 cursor-pointer hover:bg-bg-subtle transition-colors">
                       <Image className="w-10 h-10 text-text-muted mb-2" />
-                      <span className="text-sm text-text-secondary mb-1">Klik untuk upload gambar kwitansi</span>
-                      <span className="text-xs text-text-muted">Format: JPG, PNG (max 5MB)</span>
-                      <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                      <span className="text-sm text-text-secondary mb-1">Klik untuk upload kwitansi</span>
+                      <span className="text-xs text-text-muted">Format: JPG, PNG, PDF (max 5MB)</span>
+                      <input type="file" accept="image/*,.pdf" onChange={handleImageChange} className="hidden" />
                     </label>
                   )}
                 </div>

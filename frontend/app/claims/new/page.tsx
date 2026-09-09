@@ -8,7 +8,7 @@ import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { uploadAPI, projectsAPI, claimsAPI, aiConfigAPI, categoriesAPI } from '@/lib/api';
 import type { Project, Category } from '@/lib/types';
-import { Camera, Upload, Loader2, FileText } from 'lucide-react';
+import { Camera, Upload, Loader2 } from 'lucide-react';
 
 export default function NewClaimPage() {
   const router = useRouter();
@@ -29,6 +29,7 @@ export default function NewClaimPage() {
   const [hasReceipt, setHasReceipt] = useState(false);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [pdfObjectUrl, setPdfObjectUrl] = useState<string | null>(null);
   const [uploadedPath, setUploadedPath] = useState<string | null>(null);
   
   // Step 2: Form data
@@ -138,8 +139,10 @@ export default function NewClaimPage() {
   const processFile = async (file: File) => {
     setReceiptFile(file);
     
-    // Show preview — PDF can't be rendered as <img>, use placeholder
+    // Show preview — PDF uses object URL for iframe, images use base64
     if (isPdf(file)) {
+      const url = URL.createObjectURL(file);
+      setPdfObjectUrl(url);
       setReceiptPreview('pdf');
     } else {
       const reader = new FileReader();
@@ -241,6 +244,10 @@ export default function NewClaimPage() {
     setReceiptFile(null);
     setReceiptPreview(null);
     setUploadedPath(null);
+    if (pdfObjectUrl) {
+      URL.revokeObjectURL(pdfObjectUrl);
+      setPdfObjectUrl(null);
+    }
     setHasReceipt(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (cameraInputRef.current) cameraInputRef.current.value = '';
@@ -361,24 +368,24 @@ export default function NewClaimPage() {
                   Hapus
                 </button>
               </div>
-              <div className="flex items-center gap-4">
-                {receiptPreview === 'pdf' ? (
-                  <div className="w-20 h-20 bg-bg-subtle rounded-radius-md flex items-center justify-center flex-shrink-0">
-                    <FileText className="w-10 h-10 text-accent" />
-                  </div>
-                ) : (
-                  <img
-                    src={receiptPreview}
-                    alt="Receipt"
-                    className="w-20 h-20 object-cover rounded-radius-md"
-                  />
+              {receiptPreview === 'pdf' ? (
+                <iframe
+                  src={pdfObjectUrl!}
+                  className="w-full h-72 rounded-radius-md border border-border-default"
+                  title="PDF Preview"
+                />
+              ) : (
+                <img
+                  src={receiptPreview}
+                  alt="Receipt"
+                  className="w-full max-h-72 object-contain rounded-radius-md bg-bg-subtle"
+                />
+              )}
+              <div className="mt-2 flex items-center justify-between">
+                <p className="text-sm text-text-secondary truncate">{receiptFile?.name}</p>
+                {uploadedPath && (
+                  <p className="text-xs text-success">✓ File berhasil diupload</p>
                 )}
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-text-primary truncate">{receiptFile?.name}</p>
-                  {uploadedPath && (
-                    <p className="text-xs text-success mt-1">✓ File berhasil diupload</p>
-                  )}
-                </div>
               </div>
             </div>
           )}

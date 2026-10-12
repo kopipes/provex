@@ -8,6 +8,7 @@ import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { uploadAPI, projectsAPI, claimsAPI, aiConfigAPI, categoriesAPI } from '@/lib/api';
 import type { Project, Category } from '@/lib/types';
+import { formatCurrency } from '@/lib/utils';
 import { Camera, Upload, Loader2 } from 'lucide-react';
 
 export default function NewClaimPage() {
@@ -106,6 +107,13 @@ export default function NewClaimPage() {
     setSubmitError('');
     
     if (!validate()) return;
+
+    // Block over-budget claims — user must reduce amount or change category
+    const warning = getBudgetWarning();
+    if (warning) {
+      setSubmitError(warning.message);
+      return;
+    }
     
     setLoading(true);
     try {
@@ -125,6 +133,31 @@ export default function NewClaimPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getSelectedBudget = () => {
+    const project = projects.find((p) => String(p.id) === formData.project_id);
+    return (project?.category_budgets || []).find((b) => b.category === formData.category) || null;
+  };
+
+  const getBudgetWarning = () => {
+    const budget = getSelectedBudget();
+    if (!budget || budget.budget_amount == null) return null;
+    const amount = parseFloat(formData.amount);
+    if (isNaN(amount) || amount <= 0) return null;
+    const used = budget.used_amount || 0;
+    const totalAfter = used + amount;
+    if (totalAfter <= budget.budget_amount) return null;
+    const over = totalAfter - budget.budget_amount;
+    return {
+      message:
+        `Budget kategori '${budget.category}' tidak mencukupi. ` +
+        `Jatah ${formatCurrency(budget.budget_amount)}, sudah terpakai ${formatCurrency(used)}, ` +
+        `sisa ${formatCurrency(budget.budget_amount - used)}. ` +
+        `Klaim ini melebihi ${formatCurrency(over)}. ` +
+        `Kurangi jumlah atau pilih kategori lain.`,
+      over,
+    };
   };
 
   const handleChange = (field: string, value: string) => {
@@ -494,6 +527,27 @@ export default function NewClaimPage() {
                 <p className="text-danger text-sm mt-1">{errors.category}</p>
               )}
             </div>
+
+            {/* Category budget info / warning */}
+            {(() => {
+              const budget = getSelectedBudget();
+              if (!budget || budget.budget_amount == null) return null;
+              const warning = getBudgetWarning();
+              const used = budget.used_amount || 0;
+              const remaining = budget.budget_amount - used;
+              return (
+                <div className={`p-4 rounded-radius-md border ${warning ? 'bg-danger/10 border-danger/30' : 'bg-bg-subtle border-border-default'}`}>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                    <span className="text-text-secondary">Jatah: <strong className="text-text-primary">{formatCurrency(budget.budget_amount)}</strong></span>
+                    <span className="text-text-secondary">Terpakai: <strong className="text-text-primary">{formatCurrency(used)}</strong></span>
+                    <span className="text-text-secondary">Sisa: <strong className={remaining < 0 ? 'text-danger' : 'text-success'}>{formatCurrency(remaining)}</strong></span>
+                  </div>
+                  {warning && (
+                    <p className="text-danger text-sm mt-2">{warning.message}</p>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Description / Items */}
             <div>

@@ -30,6 +30,24 @@ export interface Department {
   updated_at?: string;
 }
 
+export interface CategoryBudgetUsage {
+  category: string;
+  budget_amount?: number | null;
+  used_amount: number;
+  remaining_amount?: number | null;
+  over_budget: boolean;
+}
+
+export interface BudgetWarning {
+  category: string;
+  budget_amount: number;
+  used_amount: number;
+  attempted_amount: number;
+  total_after: number;
+  over_amount: number;
+  message: string;
+}
+
 export interface Project {
   id: number;
   name: string;
@@ -42,6 +60,7 @@ export interface Project {
   created_at: string;
   member_count: number;
   total_claims: number;
+  category_budgets?: CategoryBudgetUsage[];
 }
 
 export interface Claim {
@@ -65,6 +84,7 @@ export interface Claim {
   reviewed_at?: string;
   created_at: string;
   updated_at: string;
+  budget_warning?: BudgetWarning | null;
 }
 
 export interface ProjectMember {

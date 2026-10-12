@@ -2,15 +2,74 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from app.database import get_db
-from app.models import User, Project, ProjectMember, Claim
+from app.models import User, Project, ProjectMember, Claim, ProjectCategoryBudget
 from app.schemas import (
     ProjectCreate, ProjectUpdate, ProjectResponse,
-    ProjectMemberAdd, ProjectMemberResponse
+    ProjectMemberAdd, ProjectMemberResponse, CategoryBudgetUsage
 )
 from app.auth import get_current_user, require_admin, require_manager_or_admin
 from typing import List, Optional
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
+
+# Statuses that count toward category budget consumption
+BUDGET_COUNTED_STATUSES = ("submitted", "revision", "approved")
+
+
+def get_category_budget_usage(project_id: int, db: Session) -> List[dict]:
+    """Compute per-category budget usage for a project.
+
+    Only categories that have a budget configured are returned.
+    Consumption counts claims with status submitted/revision/approved.
+    """
+    budgets = db.query(ProjectCategoryBudget).filter(
+        ProjectCategoryBudget.project_id == project_id
+    ).all()
+
+    if not budgets:
+        return []
+
+    # Aggregate used amounts per category (excluding rejected/draft)
+    used_rows = db.query(Claim.category, func.coalesce(func.sum(Claim.amount), 0)).filter(
+        Claim.project_id == project_id,
+        Claim.status.in_(BUDGET_COUNTED_STATUSES)
+    ).group_by(Claim.category).all()
+    used_map = {row[0]: float(row[1] or 0) for row in used_rows}
+
+    result = []
+    for b in budgets:
+        used = used_map.get(b.category, 0.0)
+        remaining = b.budget_amount - used
+        result.append({
+            "category": b.category,
+            "budget_amount": b.budget_amount,
+            "used_amount": used,
+            "remaining_amount": remaining,
+            "over_budget": used > b.budget_amount,
+        })
+    return result
+
+
+def replace_category_budgets(project_id: int, items, db: Session):
+    """Replace all category budgets for a project."""
+    db.query(ProjectCategoryBudget).filter(
+        ProjectCategoryBudget.project_id == project_id
+    ).delete(synchronize_session=False)
+
+    if not items:
+        return
+
+    seen = set()
+    for item in items:
+        category = (item.category or "").strip()
+        if not category or category in seen:
+            continue
+        seen.add(category)
+        db.add(ProjectCategoryBudget(
+            project_id=project_id,
+            category=category,
+            budget_amount=float(item.budget_amount),
+        ))
 
 
 def project_to_response(project: Project, db: Session) -> dict:
@@ -31,7 +90,8 @@ def project_to_response(project: Project, db: Session) -> dict:
         "created_by": project.created_by,
         "created_at": project.created_at,
         "member_count": member_count,
-        "total_claims": float(total_amount)
+        "total_claims": float(total_amount),
+        "category_budgets": get_category_budget_usage(project.id, db)
     }
 
 
@@ -82,6 +142,11 @@ def create_project(
     db.add(new_project)
     db.commit()
     db.refresh(new_project)
+    
+    # Save per-category budgets if provided
+    if project_data.category_budgets:
+        replace_category_budgets(new_project.id, project_data.category_budgets, db)
+        db.commit()
     
     return project_to_response(new_project, db)
 
@@ -141,6 +206,10 @@ def update_project(
         project.budget_limit = project_data.budget_limit
     if project_data.status is not None:
         project.status = project_data.status.value if hasattr(project_data.status, 'value') else project_data.status
+    
+    # Replace per-category budgets when provided
+    if project_data.category_budgets is not None:
+        replace_category_budgets(project.id, project_data.category_budgets, db)
     
     db.commit()
     db.refresh(project)

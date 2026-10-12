@@ -63,6 +63,7 @@ export const projectsAPI = {
     start_date: string;
     end_date?: string;
     budget_limit?: number | null;
+    category_budgets?: { category: string; budget_amount: number }[];
   }) => api.post<Project>('/projects', data),
   update: (id: number, data: {
     name?: string;
@@ -71,6 +72,7 @@ export const projectsAPI = {
     end_date?: string;
     budget_limit?: number | null;
     status?: string;
+    category_budgets?: { category: string; budget_amount: number }[];
   }) => api.put<Project>(`/projects/${id}`, data),
   delete: (id: number) => api.delete(`/projects/${id}`),
   getMembers: (id: number) => api.get<ProjectMember[]>(`/projects/${id}/members`),
@@ -101,6 +103,7 @@ export const claimsAPI = {
     description?: string;
     receipt_number?: string;
     receipt_image_path?: string;
+    confirm_over_budget?: boolean;
   }) => api.post<Claim>('/claims', data),
   update: (id: number, data: {
     merchant_name?: string;
@@ -110,6 +113,7 @@ export const claimsAPI = {
     description?: string;
     receipt_number?: string;
     receipt_image_path?: string;
+    confirm_over_budget?: boolean;
   }) => api.put<Claim>(`/claims/${id}`, data),
   delete: (id: number) => api.delete(`/claims/${id}`),
   updateStatus: (id: number, data: { status: string; notes?: string }) =>

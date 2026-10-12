@@ -37,6 +37,20 @@ class Project(Base):
 
     claims = relationship("Claim", back_populates="project")
     members = relationship("ProjectMember", back_populates="project")
+    category_budgets = relationship("ProjectCategoryBudget", back_populates="project", cascade="all, delete-orphan")
+
+
+class ProjectCategoryBudget(Base):
+    __tablename__ = "project_category_budgets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False, index=True)
+    category = Column(String(100), nullable=False)
+    budget_amount = Column(Float, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    project = relationship("Project", back_populates="category_budgets")
 
 
 class ProjectMember(Base):

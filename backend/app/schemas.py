@@ -103,6 +103,19 @@ class TokenData(BaseModel):
 
 
 # ============ Project Schemas ============
+class CategoryBudgetItem(BaseModel):
+    category: str = Field(..., min_length=1, max_length=100)
+    budget_amount: float = Field(..., ge=0)
+
+
+class CategoryBudgetUsage(BaseModel):
+    category: str
+    budget_amount: Optional[float] = None
+    used_amount: float = 0
+    remaining_amount: Optional[float] = None
+    over_budget: bool = False
+
+
 class ProjectBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
@@ -112,7 +125,7 @@ class ProjectBase(BaseModel):
 
 
 class ProjectCreate(ProjectBase):
-    pass
+    category_budgets: Optional[List[CategoryBudgetItem]] = None
 
 
 class ProjectUpdate(BaseModel):
@@ -122,6 +135,7 @@ class ProjectUpdate(BaseModel):
     end_date: Optional[date] = None
     budget_limit: Optional[float] = None
     status: Optional[ProjectStatus] = None
+    category_budgets: Optional[List[CategoryBudgetItem]] = None
 
 
 class ProjectMemberAdd(BaseModel):
@@ -135,6 +149,7 @@ class ProjectResponse(ProjectBase):
     created_at: datetime
     member_count: Optional[int] = 0
     total_claims: Optional[float] = 0
+    category_budgets: Optional[List[CategoryBudgetUsage]] = None
 
     class Config:
         from_attributes = True
@@ -153,6 +168,16 @@ class ProjectMemberResponse(BaseModel):
 
 
 # ============ Claim Schemas ============
+class BudgetWarning(BaseModel):
+    category: str
+    budget_amount: float
+    used_amount: float
+    attempted_amount: float
+    total_after: float
+    over_amount: float
+    message: str
+
+
 class ClaimBase(BaseModel):
     merchant_name: str = Field(..., min_length=1, max_length=255)
     transaction_date: date
@@ -165,6 +190,7 @@ class ClaimBase(BaseModel):
 class ClaimCreate(ClaimBase):
     project_id: int
     receipt_image_path: Optional[str] = None
+    confirm_over_budget: bool = False
 
 
 class ClaimUpdate(BaseModel):
@@ -175,6 +201,7 @@ class ClaimUpdate(BaseModel):
     description: Optional[str] = None
     receipt_number: Optional[str] = None
     receipt_image_path: Optional[str] = None
+    confirm_over_budget: bool = False
 
 
 class ClaimStatusUpdate(BaseModel):
@@ -197,6 +224,7 @@ class ClaimResponse(ClaimBase):
     reviewed_at: Optional[datetime]
     created_at: datetime
     updated_at: Optional[datetime]
+    budget_warning: Optional[BudgetWarning] = None
 
     class Config:
         from_attributes = True

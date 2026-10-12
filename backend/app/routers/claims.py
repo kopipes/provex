@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from datetime import datetime, date
 from app.database import get_db
-from app.models import User, Claim, Project, ProjectMember, AuditLog
+from app.models import User, Claim, Project, ProjectMember, AuditLog, ProjectCategoryBudget
 from app.schemas import (
     ClaimCreate, ClaimUpdate, ClaimResponse, ClaimStatusUpdate
 )
@@ -14,8 +14,64 @@ import uuid
 
 router = APIRouter(prefix="/claims", tags=["Claims"])
 
+# Statuses that count toward category budget consumption
+BUDGET_COUNTED_STATUSES = ("submitted", "revision", "approved")
 
-def claim_to_response(claim: Claim, db: Session) -> dict:
+
+def check_category_budget(
+    project_id: int,
+    category: str,
+    amount: float,
+    db: Session,
+    exclude_claim_id: Optional[int] = None
+) -> Optional[dict]:
+    """Check whether a claim amount fits the project's category budget.
+
+    Returns a warning dict when the claim would exceed the budget, otherwise None.
+    Categories without a configured budget are unlimited.
+    """
+    if not category:
+        return None
+
+    budget = db.query(ProjectCategoryBudget).filter(
+        ProjectCategoryBudget.project_id == project_id,
+        ProjectCategoryBudget.category == category
+    ).first()
+
+    if not budget:
+        return None  # No budget configured => unlimited
+
+    used_query = db.query(func.coalesce(func.sum(Claim.amount), 0)).filter(
+        Claim.project_id == project_id,
+        Claim.category == category,
+        Claim.status.in_(BUDGET_COUNTED_STATUSES)
+    )
+    if exclude_claim_id is not None:
+        used_query = used_query.filter(Claim.id != exclude_claim_id)
+    used = float(used_query.scalar() or 0)
+
+    total_after = used + float(amount)
+    if total_after <= budget.budget_amount:
+        return None
+
+    over = total_after - budget.budget_amount
+    return {
+        "category": category,
+        "budget_amount": float(budget.budget_amount),
+        "used_amount": used,
+        "attempted_amount": float(amount),
+        "total_after": total_after,
+        "over_amount": over,
+        "message": (
+            f"Budget kategori '{category}' tidak mencukupi. "
+            f"Jatah {budget.budget_amount:,.0f}, sudah terpakai {used:,.0f}, "
+            f"sisa {budget.budget_amount - used:,.0f}. "
+            f"Klaim ini melebihi sebesar {over:,.0f}."
+        )
+    }
+
+
+def claim_to_response(claim: Claim, db: Session, budget_warning: Optional[dict] = None) -> dict:
     """Convert Claim model to response dict with computed fields"""
     user = db.query(User).filter(User.id == claim.user_id).first()
     project = db.query(Project).filter(Project.id == claim.project_id).first()
@@ -43,7 +99,8 @@ def claim_to_response(claim: Claim, db: Session) -> dict:
         "reviewer_name": reviewer.name if reviewer else None,
         "reviewed_at": claim.reviewed_at,
         "created_at": claim.created_at,
-        "updated_at": claim.updated_at
+        "updated_at": claim.updated_at,
+        "budget_warning": budget_warning
     }
 
 
@@ -115,6 +172,20 @@ def create_claim(
                 detail="You are not a member of this project"
             )
     
+    category = claim_data.category.value if hasattr(claim_data.category, 'value') else claim_data.category
+
+    # Budget check — block when exceeding category budget (unless already confirmed)
+    if not claim_data.confirm_over_budget:
+        warning = check_category_budget(
+            claim_data.project_id, category, claim_data.amount, db
+        )
+        if warning:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=warning["message"],
+                headers={}
+            )
+
     new_claim = Claim(
         user_id=current_user.id,
         project_id=claim_data.project_id,
@@ -122,7 +193,7 @@ def create_claim(
         merchant_name=claim_data.merchant_name,
         transaction_date=claim_data.transaction_date,
         amount=claim_data.amount,
-        category=claim_data.category.value if hasattr(claim_data.category, 'value') else claim_data.category,
+        category=category,
         description=claim_data.description,
         receipt_number=claim_data.receipt_number,
         status="submitted",  # Auto-submit on creation
@@ -200,6 +271,23 @@ def update_claim(
             detail="Cannot update claims that are already approved or rejected"
         )
     
+    # Determine effective values after update for budget validation
+    new_category = claim.category
+    if claim_data.category is not None:
+        new_category = claim_data.category.value if hasattr(claim_data.category, 'value') else claim_data.category
+    new_amount = claim_data.amount if claim_data.amount is not None else claim.amount
+
+    # Budget check — block when exceeding category budget (unless already confirmed)
+    if not claim_data.confirm_over_budget:
+        warning = check_category_budget(
+            claim.project_id, new_category, new_amount, db, exclude_claim_id=claim.id
+        )
+        if warning:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=warning["message"]
+            )
+
     if claim_data.merchant_name is not None:
         claim.merchant_name = claim_data.merchant_name
     if claim_data.transaction_date is not None:
@@ -207,7 +295,7 @@ def update_claim(
     if claim_data.amount is not None:
         claim.amount = claim_data.amount
     if claim_data.category is not None:
-        claim.category = claim_data.category.value if hasattr(claim_data.category, 'value') else claim_data.category
+        claim.category = new_category
     if claim_data.description is not None:
         claim.description = claim_data.description
     if claim_data.receipt_number is not None:

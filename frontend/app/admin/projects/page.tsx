@@ -6,8 +6,8 @@ import { Sidebar } from '@/components/Sidebar';
 import { StatusBadge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { projectsAPI, usersAPI } from '@/lib/api';
-import type { Project, User } from '@/lib/types';
+import { projectsAPI, usersAPI, categoriesAPI } from '@/lib/api';
+import type { Project, User, Category } from '@/lib/types';
 import { Search } from 'lucide-react';
 import { useNotification } from '@/components/Toast';
 
@@ -33,6 +33,8 @@ export default function AdminProjectsPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryBudgets, setCategoryBudgets] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadData();
@@ -45,13 +47,15 @@ export default function AdminProjectsPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [projectsRes, usersRes] = await Promise.all([
+      const [projectsRes, usersRes, categoriesRes] = await Promise.all([
         projectsAPI.list(),
         usersAPI.list(),
+        categoriesAPI.list(),
       ]);
       setProjects(projectsRes.data);
       setFilteredProjects(projectsRes.data);
       setUsers(usersRes.data);
+      setCategories(categoriesRes.data);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load data');
     } finally {
@@ -94,6 +98,10 @@ export default function AdminProjectsPage() {
         start_date: formData.start_date,
         end_date: formData.end_date || undefined,
         budget_limit: formData.no_limit ? null : (formData.budget_limit ? parseFloat(formData.budget_limit) : null),
+        category_budgets: categories
+          .filter((c) => categoryBudgets[c.name] && categoryBudgets[c.name].trim() !== '')
+          .map((c) => ({ category: c.name, budget_amount: parseFloat(categoryBudgets[c.name]) }))
+          .filter((b) => !isNaN(b.budget_amount) && b.budget_amount >= 0),
       };
       
       if (editingProject) {
@@ -126,6 +134,7 @@ export default function AdminProjectsPage() {
       status: 'active',
     });
     setErrors({});
+    setCategoryBudgets({});
     setShowForm(true);
   };
 
@@ -141,6 +150,11 @@ export default function AdminProjectsPage() {
       no_limit: project.budget_limit == null,
       status: project.status || 'active',
     });
+    const budgets: Record<string, string> = {};
+    (project.category_budgets || []).forEach((b) => {
+      if (b.budget_amount != null) budgets[b.category] = String(b.budget_amount);
+    });
+    setCategoryBudgets(budgets);
     setErrors({});
     setShowForm(true);
   };
@@ -167,6 +181,7 @@ export default function AdminProjectsPage() {
     setShowForm(false);
     setEditingProject(null);
     setFormData({ name: '', description: '', start_date: '', end_date: '', budget_limit: '', no_limit: false, status: 'active' });
+    setCategoryBudgets({});
     setErrors({});
   };
 
@@ -349,6 +364,31 @@ export default function AdminProjectsPage() {
                   placeholder={formData.no_limit ? 'Tidak ada limit' : 'Masukkan budget limit'}
                   className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md disabled:opacity-50"
                 />
+              </div>
+              <div className="border-t border-border-default pt-4">
+                <label className="block text-sm font-medium text-text-primary mb-1">Budget per Kategori</label>
+                <p className="text-xs text-text-muted mb-3">
+                  Kosongkan jika kategori tidak dibatasi. Klaim yang melebihi jatah kategori akan ditolak.
+                </p>
+                {categories.length === 0 ? (
+                  <p className="text-sm text-text-muted">Belum ada kategori. Tambahkan di Pengaturan &gt; Kategori.</p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {categories.map((c) => (
+                      <div key={c.id}>
+                        <label className="block text-xs text-text-secondary mb-1">{c.name}</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={categoryBudgets[c.name] || ''}
+                          onChange={(e) => setCategoryBudgets((prev) => ({ ...prev, [c.name]: e.target.value }))}
+                          placeholder="Tanpa limit"
+                          className="w-full px-3 py-2 bg-bg-surface border border-border-default rounded-radius-md"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               {editingProject && (
                 <div>

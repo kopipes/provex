@@ -24,6 +24,7 @@ export default function ProjectDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState('');
 
   useEffect(() => {
     loadData();
@@ -44,6 +45,15 @@ export default function ProjectDetailPage() {
       setLoading(false);
     }
   };
+
+  // Distinct categories present in this project's claims
+  const claimCategories = Array.from(new Set(claims.map((c) => c.category).filter(Boolean))).sort();
+
+  const visibleClaims = categoryFilter
+    ? claims.filter((c) => c.category === categoryFilter)
+    : claims;
+
+  const visibleTotal = visibleClaims.reduce((sum, c) => sum + (c.amount || 0), 0);
 
   if (loading) {
     return (
@@ -139,11 +149,25 @@ export default function ProjectDetailPage() {
 
           {/* Claims List */}
           <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
               <h2 className="text-lg font-semibold text-text-primary">Riwayat Klaim</h2>
-              <Button onClick={() => router.push('/claims/new')} size="sm">
-                Klaim Baru
-              </Button>
+              <div className="flex items-center gap-3">
+                {claimCategories.length > 0 && (
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    className="px-3 py-2 bg-bg-surface border border-border-default rounded-radius-md text-sm"
+                  >
+                    <option value="">Semua Kategori</option>
+                    {claimCategories.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                )}
+                <Button onClick={() => router.push('/claims/new')} size="sm">
+                  Klaim Baru
+                </Button>
+              </div>
             </div>
 
             {claims.length === 0 ? (
@@ -151,37 +175,69 @@ export default function ProjectDetailPage() {
                 <p className="text-text-secondary">Belum ada klaim untuk project ini</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {claims.map((claim) => (
-                  <div
-                    key={claim.id}
-                    className="bg-bg-surface border border-border-default rounded-radius-lg p-4"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-medium text-text-primary">
-                          {claim.merchant_name}
-                        </h3>
-                        <p className="text-sm text-text-secondary mt-1">
-                          {claim.user_name} • {formatDate(claim.transaction_date)}
-                        </p>
-                      </div>
-                      <div className="text-right flex items-center gap-2">
-                        <p className="font-semibold text-text-primary">
-                          {formatCurrency(claim.amount)}
-                        </p>
-                        <StatusBadge status={claim.status} />
-                        <Button 
-                          variant="secondary" 
-                          size="sm"
-                          onClick={() => setSelectedClaim(claim)}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="bg-bg-surface border border-border-default rounded-radius-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-bg-subtle text-text-muted">
+                        <th className="text-left font-medium px-4 py-3">Merchant</th>
+                        <th className="text-left font-medium px-4 py-3">Kategori</th>
+                        <th className="text-left font-medium px-4 py-3">Tanggal</th>
+                        <th className="text-right font-medium px-4 py-3">Jumlah</th>
+                        <th className="text-left font-medium px-4 py-3">Status</th>
+                        <th className="text-right font-medium px-4 py-3">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibleClaims.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-8 text-center text-text-secondary">
+                            Tidak ada klaim untuk kategori ini
+                          </td>
+                        </tr>
+                      ) : (
+                        visibleClaims.map((claim) => (
+                          <tr key={claim.id} className="border-t border-border-default">
+                            <td className="px-4 py-3">
+                              <p className="font-medium text-text-primary">{claim.merchant_name}</p>
+                              <p className="text-xs text-text-secondary mt-0.5">{claim.user_name}</p>
+                            </td>
+                            <td className="px-4 py-3 text-text-primary">{claim.category}</td>
+                            <td className="px-4 py-3 text-text-secondary whitespace-nowrap">
+                              {formatDate(claim.transaction_date)}
+                            </td>
+                            <td className="px-4 py-3 text-right font-semibold text-text-primary whitespace-nowrap">
+                              {formatCurrency(claim.amount)}
+                            </td>
+                            <td className="px-4 py-3">
+                              <StatusBadge status={claim.status} />
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => setSelectedClaim(claim)}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-border-default bg-bg-subtle">
+                        <td colSpan={3} className="px-4 py-3 font-semibold text-text-primary">
+                          Total {categoryFilter ? `(${categoryFilter})` : ''} • {visibleClaims.length} klaim
+                        </td>
+                        <td className="px-4 py-3 text-right font-bold text-text-primary whitespace-nowrap">
+                          {formatCurrency(visibleTotal)}
+                        </td>
+                        <td colSpan={2}></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
               </div>
             )}
           </div>

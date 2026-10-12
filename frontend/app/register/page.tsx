@@ -142,13 +142,12 @@ export default function RegisterPage() {
                 ))}
               </select>
             ) : (
-              <Input
-                type="text"
-                name="department"
-                value={formData.department_id}
-                onChange={handleChange}
-                placeholder="Contoh: Engineering"
-              />
+              <select
+                className="w-full px-3 py-2 bg-bg-surface border border-border-default rounded-radius-md text-text-secondary"
+                disabled
+              >
+                <option>Belum ada departemen terdaftar</option>
+              </select>
             )}
           </div>
 

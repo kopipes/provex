@@ -345,6 +345,9 @@ export default function AdminUsersPage() {
             <div className="mb-4"><label className="block text-sm font-medium text-text-primary mb-2">Departemen</label>
               <select value={editDepartment} onChange={(e) => setEditDepartment(e.target.value)} className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md">
                 <option value="">Pilih Departemen</option>{departments.map((dept) => <option key={dept.id} value={dept.name}>{dept.name}</option>)}
+                {editDepartment && !departments.some((d) => d.name === editDepartment) && (
+                  <option value={editDepartment}>{editDepartment} (lama - tidak ada di master)</option>
+                )}
               </select>
             </div>
             <div className="mb-6"><label className="block text-sm font-medium text-text-primary mb-2">Password Baru (kosongkan jika tidak ingin mengubah)</label><input type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} placeholder="Minimal 6 karakter" className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md" /></div>

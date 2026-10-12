@@ -5,7 +5,7 @@ import os
 import httpx
 from datetime import datetime
 from app.database import get_db
-from app.models import User, AIConfig, AuditLog
+from app.models import User, AIConfig, AuditLog, Category
 from app.schemas import AIConfigUpdate, AIConfigResponse, AIConnectionTest
 from app.auth import require_admin, get_current_user
 
@@ -220,15 +220,25 @@ async def extract_receipt_data(
     # Check if this is Gemini API by looking at model name
     is_gemini = "gemini" in model_name.lower()
     
-    prompt = """Extract information from this receipt image. Return a JSON object with these fields:
+    # Build the category hint from the live master data so renamed/added
+    # categories are always respected by the extraction prompt.
+    category_names = [c.name for c in db.query(Category).order_by(Category.name).all()]
+    if category_names:
+        category_hint = ", ".join(category_names)
+        example_category = category_names[0]
+    else:
+        category_hint = "the most appropriate category"
+        example_category = "Other"
+
+    prompt = f"""Extract information from this receipt image. Return a JSON object with these fields:
 - merchant_name: the store or merchant name
 - transaction_date: date in YYYY-MM-DD format
 - amount: the total amount paid (just the number)
-- category: one of [Makanan, Transport, Akomodasi, Lain-lain]
+- category: choose the closest match from [{category_hint}]
 - receipt_number: the receipt/invoice number if visible
 - description: brief description of items purchased
 
-Return ONLY valid JSON, no markdown or extra text. Example: {"merchant_name":"Toko ABC","transaction_date":"2025-05-10","amount":50000,"category":"Makanan","description":"Makan siang","receipt_number":"12345"}"""
+Return ONLY valid JSON, no markdown or extra text. Example: {{"merchant_name":"Toko ABC","transaction_date":"2025-05-10","amount":50000,"category":"{example_category}","description":"Makan siang","receipt_number":"12345"}}"""
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:

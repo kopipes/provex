@@ -526,10 +526,13 @@ export default function AdminClaimsPage() {
                   onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
                   className="w-full px-4 py-2 bg-bg-surface border border-border-default rounded-radius-md"
                 >
-                  <option value="Makanan">Makanan</option>
-                  <option value="Transport">Transport</option>
-                  <option value="Akomodasi">Akomodasi</option>
-                  <option value="Lain-lain">Lain-lain</option>
+                  <option value="">Pilih kategori</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
+                  {editFormData.category && !categories.some((c) => c.name === editFormData.category) && (
+                    <option value={editFormData.category}>{editFormData.category} (lama)</option>
+                  )}
                 </select>
               </div>
               <div>

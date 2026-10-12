@@ -7,8 +7,8 @@ import { StatusBadge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { ReceiptViewer } from '@/components/ReceiptViewer';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { claimsAPI } from '@/lib/api';
-import type { Claim } from '@/lib/types';
+import { claimsAPI, categoriesAPI } from '@/lib/api';
+import type { Claim, Category } from '@/lib/types';
 import { Search, X, Eye, Edit2, Trash2, Upload, Image } from 'lucide-react';
 import { uploadAPI } from '@/lib/api';
 import { useNotification } from '@/components/Toast';
@@ -36,10 +36,21 @@ export default function HistoryPage() {
   const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
   const [deletingClaim, setDeletingClaim] = useState<Claim | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
     loadClaims();
+    loadCategories();
   }, []);
+
+  const loadCategories = async () => {
+    try {
+      const res = await categoriesAPI.list();
+      setCategories(res.data);
+    } catch (err) {
+      console.error('Failed to load categories');
+    }
+  };
 
   useEffect(() => {
     filterClaims();
@@ -435,10 +446,13 @@ export default function HistoryPage() {
                   onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
                   className="w-full px-4 py-2 bg-bg-surface border border-border-default rounded-radius-md"
                 >
-                  <option value="Makanan">Makanan</option>
-                  <option value="Transport">Transport</option>
-                  <option value="Akomodasi">Akomodasi</option>
-                  <option value="Lain-lain">Lain-lain</option>
+                  <option value="">Pilih kategori</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
+                  {editFormData.category && !categories.some((c) => c.name === editFormData.category) && (
+                    <option value={editFormData.category}>{editFormData.category} (lama)</option>
+                  )}
                 </select>
               </div>
               <div>

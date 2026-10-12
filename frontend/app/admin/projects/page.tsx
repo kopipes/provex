@@ -26,8 +26,6 @@ export default function AdminProjectsPage() {
     description: '',
     start_date: '',
     end_date: '',
-    budget_limit: '',
-    no_limit: false,
     status: 'active',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -97,7 +95,6 @@ export default function AdminProjectsPage() {
         description: formData.description || undefined,
         start_date: formData.start_date,
         end_date: formData.end_date || undefined,
-        budget_limit: formData.no_limit ? null : (formData.budget_limit ? parseFloat(formData.budget_limit) : null),
         category_budgets: categories
           .filter((c) => categoryBudgets[c.name] && categoryBudgets[c.name].trim() !== '')
           .map((c) => ({ category: c.name, budget_amount: parseFloat(categoryBudgets[c.name]) }))
@@ -129,8 +126,6 @@ export default function AdminProjectsPage() {
       description: '',
       start_date: '',
       end_date: '',
-      budget_limit: '',
-      no_limit: false,
       status: 'active',
     });
     setErrors({});
@@ -140,14 +135,11 @@ export default function AdminProjectsPage() {
 
   const handleEdit = (project: Project) => {
     setEditingProject(project);
-    const budgetValue = project.budget_limit != null ? String(project.budget_limit) : '';
     setFormData({
       name: project.name,
       description: project.description || '',
       start_date: project.start_date,
       end_date: project.end_date || '',
-      budget_limit: budgetValue,
-      no_limit: project.budget_limit == null,
       status: project.status || 'active',
     });
     const budgets: Record<string, string> = {};
@@ -180,7 +172,7 @@ export default function AdminProjectsPage() {
   const resetForm = () => {
     setShowForm(false);
     setEditingProject(null);
-    setFormData({ name: '', description: '', start_date: '', end_date: '', budget_limit: '', no_limit: false, status: 'active' });
+    setFormData({ name: '', description: '', start_date: '', end_date: '', status: 'active' });
     setCategoryBudgets({});
     setErrors({});
   };
@@ -254,9 +246,14 @@ export default function AdminProjectsPage() {
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-sm">
                     <div>
-                      <span className="text-text-muted">Anggaran</span>
+                      <span className="text-text-muted">Budget Kategori</span>
                       <p className="font-medium text-text-primary">
-                        {project.budget_limit == null ? 'Tanpa Limit' : project.budget_limit ? formatCurrency(project.budget_limit) : '-'}
+                        {(() => {
+                          const list = project.category_budgets || [];
+                          if (list.length === 0) return 'Tanpa Limit';
+                          const total = list.reduce((s, b) => s + (b.budget_amount || 0), 0);
+                          return `${list.length} kategori • ${formatCurrency(total)}`;
+                        })()}
                       </p>
                     </div>
                     <div>
@@ -332,38 +329,6 @@ export default function AdminProjectsPage() {
                     className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md"
                   />
                 </div>
-              </div>
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <input
-                    type="checkbox"
-                    id="no_limit"
-                    checked={formData.no_limit}
-                    onChange={(e) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        no_limit: e.target.checked,
-                        budget_limit: e.target.checked ? '' : prev.budget_limit
-                      }));
-                    }}
-                    className="w-4 h-4 rounded border-border-default"
-                  />
-                  <label htmlFor="no_limit" className="text-sm text-text-secondary">Tidak ada limit anggaran</label>
-                </div>
-                <input
-                  type="number"
-                  value={formData.budget_limit}
-                  onChange={(e) => {
-                    setFormData((prev) => ({
-                      ...prev,
-                      budget_limit: e.target.value,
-                      no_limit: false
-                    }));
-                  }}
-                  disabled={formData.no_limit}
-                  placeholder={formData.no_limit ? 'Tidak ada limit' : 'Masukkan budget limit'}
-                  className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md disabled:opacity-50"
-                />
               </div>
               <div className="border-t border-border-default pt-4">
                 <label className="block text-sm font-medium text-text-primary mb-1">Budget per Kategori</label>

@@ -107,9 +107,14 @@ export default function ProjectDetailPage() {
           {/* Project Info */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <div className="bg-bg-surface border border-border-default rounded-radius-lg p-4">
-              <p className="text-sm text-text-muted">Anggaran</p>
+              <p className="text-sm text-text-muted">Budget Kategori</p>
               <p className="text-lg font-semibold text-text-primary">
-                {project.budget_limit ? formatCurrency(project.budget_limit) : 'Tanpa Limit'}
+                {(() => {
+                  const list = project.category_budgets || [];
+                  if (list.length === 0) return 'Tanpa Limit';
+                  const total = list.reduce((s, b) => s + (b.budget_amount || 0), 0);
+                  return `${list.length} kategori • ${formatCurrency(total)}`;
+                })()}
               </p>
             </div>
             <div className="bg-bg-surface border border-border-default rounded-radius-lg p-4">

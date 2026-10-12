@@ -121,7 +121,6 @@ class ProjectBase(BaseModel):
     description: Optional[str] = None
     start_date: date
     end_date: Optional[date] = None
-    budget_limit: Optional[float] = None
 
 
 class ProjectCreate(ProjectBase):
@@ -133,7 +132,6 @@ class ProjectUpdate(BaseModel):
     description: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
-    budget_limit: Optional[float] = None
     status: Optional[ProjectStatus] = None
     category_budgets: Optional[List[CategoryBudgetItem]] = None
 

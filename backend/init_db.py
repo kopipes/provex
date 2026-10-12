@@ -72,7 +72,6 @@ def init_db():
                 description="Pengembangan Gedung A kantor pusat",
                 start_date=date(2025, 1, 1),
                 end_date=date(2025, 12, 31),
-                budget_limit=500000000,
                 status="active",
                 created_by=admin.id
             )
@@ -91,7 +90,6 @@ def init_db():
                 description="Perjalanan bisnis ke Singapore Q2 2025",
                 start_date=date(2025, 4, 1),
                 end_date=date(2025, 6, 30),
-                budget_limit=100000000,
                 status="active",
                 created_by=admin.id
             )

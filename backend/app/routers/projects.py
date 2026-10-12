@@ -85,7 +85,6 @@ def project_to_response(project: Project, db: Session) -> dict:
         "description": project.description,
         "start_date": project.start_date,
         "end_date": project.end_date,
-        "budget_limit": project.budget_limit,
         "status": project.status,
         "created_by": project.created_by,
         "created_at": project.created_at,
@@ -135,7 +134,6 @@ def create_project(
         description=project_data.description,
         start_date=project_data.start_date,
         end_date=project_data.end_date,
-        budget_limit=project_data.budget_limit,
         created_by=current_user.id
     )
     
@@ -201,9 +199,6 @@ def update_project(
         project.start_date = project_data.start_date
     if project_data.end_date is not None:
         project.end_date = project_data.end_date
-    # Handle budget_limit - check if attribute exists, even if None
-    if hasattr(project_data, 'budget_limit'):
-        project.budget_limit = project_data.budget_limit
     if project_data.status is not None:
         project.status = project_data.status.value if hasattr(project_data.status, 'value') else project_data.status
     

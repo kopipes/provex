@@ -110,9 +110,14 @@ export default function ProjectsPage() {
                   
                   <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
                     <div>
-                      <span className="text-text-muted">Anggaran</span>
+                      <span className="text-text-muted">Budget Kategori</span>
                       <p className="font-medium text-text-primary">
-                        {project.budget_limit ? formatCurrency(project.budget_limit) : '-'}
+                        {(() => {
+                          const list = project.category_budgets || [];
+                          if (list.length === 0) return '-';
+                          const total = list.reduce((s, b) => s + (b.budget_amount || 0), 0);
+                          return `${list.length} kategori • ${formatCurrency(total)}`;
+                        })()}
                       </p>
                     </div>
                     <div>

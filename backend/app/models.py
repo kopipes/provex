@@ -29,7 +29,6 @@ class Project(Base):
     description = Column(Text, nullable=True)
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=True)
-    budget_limit = Column(Float, nullable=True)
     status = Column(String(20), default="active")
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())

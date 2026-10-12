@@ -62,7 +62,6 @@ export const projectsAPI = {
     description?: string;
     start_date: string;
     end_date?: string;
-    budget_limit?: number | null;
     category_budgets?: { category: string; budget_amount: number }[];
   }) => api.post<Project>('/projects', data),
   update: (id: number, data: {
@@ -70,7 +69,6 @@ export const projectsAPI = {
     description?: string;
     start_date?: string;
     end_date?: string;
-    budget_limit?: number | null;
     status?: string;
     category_budgets?: { category: string; budget_amount: number }[];
   }) => api.put<Project>(`/projects/${id}`, data),

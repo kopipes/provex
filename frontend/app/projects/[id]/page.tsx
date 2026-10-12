@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth';
 import { Sidebar } from '@/components/Sidebar';
 import { StatusBadge } from '@/components/Badge';
 import { Button } from '@/components/Button';
+import { ReceiptViewer } from '@/components/ReceiptViewer';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { projectsAPI, claimsAPI } from '@/lib/api';
 import type { Project, Claim } from '@/lib/types';
@@ -232,19 +233,7 @@ export default function ProjectDetailPage() {
               {selectedClaim.receipt_image_path && (
                 <div>
                   <span className="text-text-muted text-sm block mb-2">Bukti Kwitansi</span>
-                  {selectedClaim.receipt_image_path.toLowerCase().endsWith('.pdf') ? (
-                    <iframe
-                      src={`/api${selectedClaim.receipt_image_path}`}
-                      className="w-full h-96 rounded-lg border border-border-default"
-                      title="PDF Preview"
-                    />
-                  ) : (
-                    <img
-                      src={`/api${selectedClaim.receipt_image_path}`}
-                      alt="Receipt"
-                      className="w-full max-h-96 object-contain rounded-lg border border-border-default bg-bg-subtle"
-                    />
-                  )}
+                  <ReceiptViewer path={selectedClaim.receipt_image_path} />
                 </div>
               )}
 

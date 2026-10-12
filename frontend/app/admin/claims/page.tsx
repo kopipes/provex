@@ -5,9 +5,10 @@ import { useAuth } from '@/lib/auth';
 import { Sidebar } from '@/components/Sidebar';
 import { StatusBadge } from '@/components/Badge';
 import { Button } from '@/components/Button';
+import { ReceiptViewer } from '@/components/ReceiptViewer';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { claimsAPI, analyticsAPI, projectsAPI } from '@/lib/api';
-import type { Claim, Project } from '@/lib/types';
+import { claimsAPI, analyticsAPI, projectsAPI, categoriesAPI } from '@/lib/api';
+import type { Claim, Project, Category } from '@/lib/types';
 import { Search, Eye, X, Edit2, Trash2 } from 'lucide-react';
 import { useNotification } from '@/components/Toast';
 
@@ -16,10 +17,12 @@ export default function AdminClaimsPage() {
   const { showToast } = useNotification();
   const [claims, setClaims] = useState<Claim[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('');
   const [projectFilter, setProjectFilter] = useState<number | undefined>();
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [periodFilter, setPeriodFilter] = useState('all');
   const [exportStartDate, setExportStartDate] = useState('');
   const [exportEndDate, setExportEndDate] = useState('');
@@ -43,7 +46,7 @@ export default function AdminClaimsPage() {
 
   useEffect(() => {
     loadData();
-  }, [filter, projectFilter, exportStartDate, exportEndDate]);
+  }, [filter, projectFilter, categoryFilter, exportStartDate, exportEndDate]);
 
   useEffect(() => {
     filterClaims();
@@ -52,7 +55,7 @@ export default function AdminClaimsPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const params: any = { status: filter || undefined, project_id: projectFilter };
+      const params: any = { status: filter || undefined, project_id: projectFilter, category: categoryFilter || undefined };
       
       // Add date range filter if both dates are set
       if (exportStartDate && exportEndDate) {
@@ -63,13 +66,15 @@ export default function AdminClaimsPage() {
       console.log('Loading claims with params:', params);
       console.log('Date range:', exportStartDate, 'to', exportEndDate);
       
-      const [claimsRes, projectsRes] = await Promise.all([
+      const [claimsRes, projectsRes, categoriesRes] = await Promise.all([
         claimsAPI.list(params),
-        projectsAPI.list()
+        projectsAPI.list(),
+        categoriesAPI.list()
       ]);
       console.log('API Response:', claimsRes.data.length, 'claims');
       setClaims(claimsRes.data);
       setProjects(projectsRes.data);
+      setCategories(categoriesRes.data);
     } catch (err: any) {
       console.error('API Error:', err);
       setError(err.response?.data?.detail || 'Failed to load claims');
@@ -250,6 +255,16 @@ export default function AdminClaimsPage() {
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="px-4 py-2 bg-bg-surface border border-border-default rounded-radius-md"
+              >
+                <option value="">Semua Kategori</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.name}>{c.name}</option>
+                ))}
+              </select>
               <div className="flex items-center gap-2">
                 <input
                   type="date"
@@ -406,19 +421,7 @@ export default function AdminClaimsPage() {
               {selectedClaim.receipt_image_path && (
                 <div>
                   <span className="text-text-muted text-sm block mb-2">Bukti Kwitansi</span>
-                  {selectedClaim.receipt_image_path.toLowerCase().endsWith('.pdf') ? (
-                    <iframe
-                      src={`/api${selectedClaim.receipt_image_path}`}
-                      className="w-full h-96 rounded-lg border border-border-default"
-                      title="PDF Preview"
-                    />
-                  ) : (
-                    <img
-                      src={`/api${selectedClaim.receipt_image_path}`}
-                      alt="Receipt"
-                      className="w-full max-h-96 object-contain rounded-lg border border-border-default bg-bg-subtle"
-                    />
-                  )}
+                  <ReceiptViewer path={selectedClaim.receipt_image_path} />
                 </div>
               )}
 

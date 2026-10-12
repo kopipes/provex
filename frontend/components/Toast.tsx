@@ -66,6 +66,7 @@ export function ConfirmModal({
   variant = 'default',
   onConfirm,
   onCancel,
+  isLoading = false,
 }: ConfirmOptions & { isLoading?: boolean }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -81,8 +82,8 @@ export function ConfirmModal({
           </button>
           <button
             onClick={onConfirm}
-            disabled={variant === 'danger'}
-            className={`px-4 py-2 text-sm font-medium rounded-radius-md transition-colors ${
+            disabled={isLoading}
+            className={`px-4 py-2 text-sm font-medium rounded-radius-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
               variant === 'danger'
                 ? 'bg-danger text-white hover:bg-danger/90'
                 : variant === 'warning'
@@ -90,7 +91,7 @@ export function ConfirmModal({
                 : 'bg-accent text-white hover:bg-accent/90'
             }`}
           >
-            {confirmText}
+            {isLoading ? 'Memproses...' : confirmText}
           </button>
         </div>
       </div>

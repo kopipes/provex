@@ -130,7 +130,7 @@ export const analyticsAPI = {
   getAuditLogs: (params?: { limit?: number }) =>
     api.get<AuditLog[]>('/analytics/audit-logs', { params }),
   getDashboard: () => api.get<DashboardSummary>('/analytics/dashboard'),
-  exportCSV: (params?: { period?: string; project_id?: string; status?: string }) =>
+  exportCSV: (params?: { period?: string; project_id?: string; status?: string; category?: string; start_date?: string; end_date?: string }) =>
     api.get('/analytics/export/csv', { params, responseType: 'blob' }),
 };
 

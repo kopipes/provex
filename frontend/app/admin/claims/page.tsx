@@ -106,6 +106,7 @@ export default function AdminClaimsPage() {
       const params: any = { period: periodFilter };
       if (projectFilter) params.project_id = projectFilter;
       if (filter) params.status = filter;
+      if (categoryFilter) params.category = categoryFilter;
       if (exportStartDate && exportEndDate) {
         params.start_date = exportStartDate;
         params.end_date = exportEndDate;

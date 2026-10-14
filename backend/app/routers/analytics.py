@@ -181,6 +181,7 @@ def export_csv(
     period: str = Query("monthly"),
     project_id: Optional[int] = Query(None),
     status: Optional[str] = Query(None),
+    category: Optional[str] = Query(None),
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None),
     db: Session = Depends(get_db),
@@ -210,6 +211,8 @@ def export_csv(
         query = query.filter(Claim.project_id == project_id)
     if status:
         query = query.filter(Claim.status == status)
+    if category:
+        query = query.filter(Claim.category == category)
     
     claims = query.order_by(Claim.created_at.desc()).all()
     

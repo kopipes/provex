@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
+from dateutil.relativedelta import relativedelta
 from app.database import get_db
 from app.models import User, Project, ProjectMember, Claim, ProjectCategoryBudget
 from app.schemas import (
@@ -85,6 +86,12 @@ def project_to_response(project: Project, db: Session) -> dict:
         "description": project.description,
         "start_date": project.start_date,
         "end_date": project.end_date,
+        "claim_window_start": (
+            project.start_date - relativedelta(months=1) if project.start_date else None
+        ),
+        "claim_window_end": (
+            project.end_date + relativedelta(months=1) if project.end_date else None
+        ),
         "status": project.status,
         "created_by": project.created_by,
         "created_at": project.created_at,

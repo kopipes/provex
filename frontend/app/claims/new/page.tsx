@@ -8,8 +8,8 @@ import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { uploadAPI, projectsAPI, claimsAPI, aiConfigAPI, categoriesAPI } from '@/lib/api';
 import type { Project, Category } from '@/lib/types';
-import { formatCurrency } from '@/lib/utils';
-import { Camera, Upload, Loader2 } from 'lucide-react';
+import { formatCurrency, formatDate } from '@/lib/utils';
+import { Camera, Upload, Loader2, AlertCircle } from 'lucide-react';
 
 export default function NewClaimPage() {
   const router = useRouter();
@@ -108,6 +108,13 @@ export default function NewClaimPage() {
     
     if (!validate()) return;
 
+    // Block claims outside the project claim window
+    const windowError = getWindowError();
+    if (windowError) {
+      setSubmitError(windowError);
+      return;
+    }
+
     // Block over-budget claims — user must reduce amount or change category
     const warning = getBudgetWarning();
     if (warning) {
@@ -138,6 +145,41 @@ export default function NewClaimPage() {
   const getSelectedBudget = () => {
     const project = projects.find((p) => String(p.id) === formData.project_id);
     return (project?.category_budgets || []).find((b) => b.category === formData.category) || null;
+  };
+
+  const getSelectedProject = () =>
+    projects.find((p) => String(p.id) === formData.project_id) || null;
+
+  const getClaimWindow = () => {
+    const project = getSelectedProject();
+    if (!project?.claim_window_start || !project?.claim_window_end) return null;
+    return { start: project.claim_window_start, end: project.claim_window_end };
+  };
+
+  const todayStr = () => new Date().toISOString().split('T')[0];
+
+  const getWindowError = () => {
+    const project = getSelectedProject();
+    if (!project) return null;
+    const window = getClaimWindow();
+    if (!window) return null;
+
+    const today = todayStr();
+    if (today < window.start) {
+      return `Klaim belum dapat diajukan. Pengajuan untuk project '${project.name}' dibuka mulai ${formatDate(window.start)} (1 bulan sebelum tanggal mulai project).`;
+    }
+    if (today > window.end) {
+      return `Periode pengajuan klaim untuk project '${project.name}' sudah berakhir pada ${formatDate(window.end)} (1 bulan setelah tanggal selesai project).`;
+    }
+    if (formData.transaction_date) {
+      if (formData.transaction_date < window.start) {
+        return `Tanggal struk (${formatDate(formData.transaction_date)}) di luar periode klaim project '${project.name}'. Bon lama tidak dapat diklaim. Periode yang diterima: ${formatDate(window.start)} s/d ${formatDate(window.end)}.`;
+      }
+      if (formData.transaction_date > window.end) {
+        return `Tanggal struk (${formatDate(formData.transaction_date)}) melewati batas periode klaim project '${project.name}'. Periode yang diterima: ${formatDate(window.start)} s/d ${formatDate(window.end)}.`;
+      }
+    }
+    return null;
   };
 
   const getBudgetWarning = () => {
@@ -389,6 +431,16 @@ export default function NewClaimPage() {
             </p>
           </div>
 
+          {getWindowError() && (
+            <div className="mb-6 p-4 bg-danger/10 border border-danger/30 rounded-radius-md flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-danger text-sm">Di luar periode klaim</p>
+                <p className="text-danger text-sm mt-1">{getWindowError()}</p>
+              </div>
+            </div>
+          )}
+
           {/* Receipt Preview (if uploaded) */}
           {receiptPreview && (
             <div className="mb-6 bg-bg-surface border border-border-default rounded-radius-lg p-4">
@@ -475,9 +527,16 @@ export default function NewClaimPage() {
                 <input
                   type="date"
                   value={formData.transaction_date}
+                  min={getClaimWindow()?.start}
+                  max={getClaimWindow()?.end}
                   onChange={(e) => handleChange('transaction_date', e.target.value)}
                   className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
                 />
+                {getClaimWindow() && (
+                  <p className="text-xs text-text-muted mt-1">
+                    Periode klaim: {formatDate(getClaimWindow()!.start)} s/d {formatDate(getClaimWindow()!.end)}
+                  </p>
+                )}
                 {errors.transaction_date && (
                   <p className="text-danger text-sm mt-1">{errors.transaction_date}</p>
                 )}

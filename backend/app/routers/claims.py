@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from datetime import datetime, date
+from dateutil.relativedelta import relativedelta
 from app.database import get_db
 from app.models import User, Claim, Project, ProjectMember, AuditLog, ProjectCategoryBudget
 from app.schemas import (
@@ -16,6 +17,68 @@ router = APIRouter(prefix="/claims", tags=["Claims"])
 
 # Statuses that count toward category budget consumption
 BUDGET_COUNTED_STATUSES = ("submitted", "revision", "approved")
+
+
+def get_claim_window(project: Project):
+    """Return the allowed claim window for a project.
+
+    Claims (receipt date and submission date) are allowed from 1 month
+    before start_date until 1 month after end_date.
+    """
+    window_start = project.start_date - relativedelta(months=1)
+    window_end = project.end_date + relativedelta(months=1)
+    return window_start, window_end
+
+
+def check_claim_window(
+    project: Project,
+    transaction_date: Optional[date] = None,
+    today: Optional[date] = None
+) -> Optional[str]:
+    """Return an error message when the claim is outside the allowed window.
+
+    Both the receipt transaction date and the submission date (today) must fall
+    within [start_date - 1 month, end_date + 1 month].
+    """
+    if not project.start_date or not project.end_date:
+        return None  # No defined period => no restriction
+
+    today = today or date.today()
+    window_start, window_end = get_claim_window(project)
+
+    # Submission date must be within the window
+    if today < window_start:
+        return (
+            f"Klaim belum dapat diajukan. Pengajuan untuk project '{project.name}' "
+            f"dibuka mulai {window_start.strftime('%d %b %Y')} "
+            f"(1 bulan sebelum tanggal mulai project)."
+        )
+    if today > window_end:
+        return (
+            f"Periode pengajuan klaim untuk project '{project.name}' sudah berakhir "
+            f"pada {window_end.strftime('%d %b %Y')} "
+            f"(1 bulan setelah tanggal selesai project)."
+        )
+
+    # Receipt date must be within the window
+    if transaction_date:
+        if transaction_date < window_start:
+            return (
+                f"Tanggal struk ({transaction_date.strftime('%d %b %Y')}) di luar periode klaim "
+                f"project '{project.name}'. Bon lama tidak dapat diklaim. "
+                f"Periode yang diterima: {window_start.strftime('%d %b %Y')} "
+                f"s/d {window_end.strftime('%d %b %Y')}."
+            )
+        if transaction_date > window_end:
+            return (
+                f"Tanggal struk ({transaction_date.strftime('%d %b %Y')}) melewati batas periode klaim "
+                f"project '{project.name}'. "
+                f"Periode yang diterima: {window_start.strftime('%d %b %Y')} "
+                f"s/d {window_end.strftime('%d %b %Y')}."
+            )
+
+    return None
+
 
 
 def check_category_budget(
@@ -172,6 +235,14 @@ def create_claim(
                 detail="You are not a member of this project"
             )
     
+    # Enforce claim window (±1 month around project period)
+    window_error = check_claim_window(project, claim_data.transaction_date)
+    if window_error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=window_error
+        )
+    
     category = claim_data.category.value if hasattr(claim_data.category, 'value') else claim_data.category
 
     # Budget check — block when exceeding category budget (unless already confirmed)
@@ -276,6 +347,22 @@ def update_claim(
     if claim_data.category is not None:
         new_category = claim_data.category.value if hasattr(claim_data.category, 'value') else claim_data.category
     new_amount = claim_data.amount if claim_data.amount is not None else claim.amount
+    new_transaction_date = (
+        claim_data.transaction_date
+        if claim_data.transaction_date is not None
+        else claim.transaction_date
+    )
+
+    # Enforce claim window when the claim is being (re)submitted
+    if claim.status in ("draft", "revision"):
+        project = db.query(Project).filter(Project.id == claim.project_id).first()
+        if project:
+            window_error = check_claim_window(project, new_transaction_date)
+            if window_error:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=window_error
+                )
 
     # Budget check — block when exceeding category budget (unless already confirmed)
     if not claim_data.confirm_over_budget:
@@ -392,6 +479,16 @@ def submit_claim(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Can only submit draft or revision claims"
         )
+    
+    # Enforce claim window on submission
+    project = db.query(Project).filter(Project.id == claim.project_id).first()
+    if project:
+        window_error = check_claim_window(project, claim.transaction_date)
+        if window_error:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=window_error
+            )
     
     claim.status = "submitted"
     db.commit()

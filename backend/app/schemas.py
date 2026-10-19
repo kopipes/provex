@@ -150,6 +150,8 @@ class ProjectResponse(ProjectBase):
     member_count: Optional[int] = 0
     total_claims: Optional[float] = 0
     category_budgets: Optional[List[CategoryBudgetUsage]] = None
+    claim_window_start: Optional[date] = None
+    claim_window_end: Optional[date] = None
 
     class Config:
         from_attributes = True

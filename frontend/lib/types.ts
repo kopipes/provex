@@ -60,6 +60,8 @@ export interface Project {
   member_count: number;
   total_claims: number;
   category_budgets?: CategoryBudgetUsage[];
+  claim_window_start?: string | null;
+  claim_window_end?: string | null;
 }
 
 export interface Claim {

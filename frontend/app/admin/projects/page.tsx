@@ -80,6 +80,10 @@ export default function AdminProjectsPage() {
     const newErrors: Record<string, string> = {};
     if (!formData.name) newErrors.name = 'Nama project wajib diisi';
     if (!formData.start_date) newErrors.start_date = 'Tanggal mulai wajib diisi';
+    if (!formData.end_date) newErrors.end_date = 'Tanggal selesai wajib diisi';
+    else if (formData.start_date && formData.end_date < formData.start_date) {
+      newErrors.end_date = 'Tanggal selesai tidak boleh sebelum tanggal mulai';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -94,7 +98,7 @@ export default function AdminProjectsPage() {
         name: formData.name,
         description: formData.description || undefined,
         start_date: formData.start_date,
-        end_date: formData.end_date || undefined,
+        end_date: formData.end_date,
         category_budgets: categories
           .filter((c) => categoryBudgets[c.name] && categoryBudgets[c.name].trim() !== '')
           .map((c) => ({ category: c.name, budget_amount: parseFloat(categoryBudgets[c.name]) }))
@@ -321,13 +325,15 @@ export default function AdminProjectsPage() {
                   {errors.start_date && <p className="text-danger text-sm mt-1">{errors.start_date}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-text-primary mb-2">Tanggal Selesai</label>
+                  <label className="block text-sm font-medium text-text-primary mb-2">Tanggal Selesai *</label>
                   <input
                     type="date"
                     value={formData.end_date}
+                    min={formData.start_date || undefined}
                     onChange={(e) => updateFormData('end_date', e.target.value)}
-                    className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md"
+                    className={`w-full px-4 py-2.5 bg-bg-surface border rounded-radius-md ${errors.end_date ? 'border-danger' : 'border-border-default'}`}
                   />
+                  {errors.end_date && <p className="text-danger text-sm mt-1">{errors.end_date}</p>}
                 </div>
               </div>
               <div className="border-t border-border-default pt-4">

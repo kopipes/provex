@@ -124,6 +124,8 @@ class ProjectBase(BaseModel):
 
 
 class ProjectCreate(ProjectBase):
+    # Required on creation
+    end_date: date
     category_budgets: Optional[List[CategoryBudgetItem]] = None
 
 

@@ -156,9 +156,13 @@ export default function AdminProjectsPage() {
   };
 
   const handleDelete = (project: Project) => {
+    if ((project.claim_count ?? 0) > 0) {
+      showToast('error', `Project masih memiliki ${project.claim_count} klaim. Hapus klaim draft/revision terlebih dahulu, atau arsipkan project ini.`);
+      return;
+    }
     showConfirm({
       title: 'Hapus Project',
-      message: `Hapus project "${project.name}"? Semua klaim dalam project ini akan tetap ada.`,
+      message: `Hapus project "${project.name}"? Project ini tidak memiliki klaim, jadi aman dihapus permanen.`,
       confirmText: 'Hapus',
       variant: 'danger',
       onConfirm: async () => {
@@ -276,9 +280,16 @@ export default function AdminProjectsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-4 border-t border-border-default flex justify-end gap-2">
+                  <div className="mt-4 pt-4 border-t border-border-default flex flex-wrap justify-end items-center gap-2">
+                    {(project.claim_count ?? 0) > 0 && (
+                      <span className="text-xs text-text-muted mr-auto">
+                        {project.claim_count} klaim — tidak dapat dihapus, gunakan Arsipkan
+                      </span>
+                    )}
                     <Button variant="secondary" size="sm" onClick={() => handleEdit(project)}>Edit</Button>
-                    <Button variant="secondary" size="sm" className="text-danger" onClick={() => handleDelete(project)}>Hapus</Button>
+                    {(project.claim_count ?? 0) === 0 && (
+                      <Button variant="secondary" size="sm" className="text-danger" onClick={() => handleDelete(project)}>Hapus</Button>
+                    )}
                   </div>
                 </div>
               ))}

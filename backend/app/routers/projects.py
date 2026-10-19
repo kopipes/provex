@@ -79,6 +79,7 @@ def project_to_response(project: Project, db: Session) -> dict:
     total_amount = db.query(func.coalesce(func.sum(Claim.amount), 0)).filter(
         Claim.project_id == project.id
     ).scalar()
+    claim_count = db.query(Claim).filter(Claim.project_id == project.id).count()
     
     return {
         "id": project.id,
@@ -96,6 +97,7 @@ def project_to_response(project: Project, db: Session) -> dict:
         "created_by": project.created_by,
         "created_at": project.created_at,
         "member_count": member_count,
+        "claim_count": claim_count,
         "total_claims": float(total_amount),
         "category_budgets": get_category_budget_usage(project.id, db)
     }
@@ -230,6 +232,31 @@ def delete_project(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Project not found"
+        )
+    
+    # Guardrail: a project can only be deleted once it has no claims left.
+    # Claims with status submitted/approved/rejected are locked, so they must
+    # be archived instead (per AGENTS.md: never hard delete financial history).
+    claim_count = db.query(Claim).filter(Claim.project_id == project_id).count()
+    if claim_count > 0:
+        removable = db.query(Claim).filter(
+            Claim.project_id == project_id,
+            Claim.status.in_(["draft", "revision"])
+        ).count()
+        locked = claim_count - removable
+        detail = (
+            f"Project masih memiliki {claim_count} klaim sehingga tidak dapat dihapus."
+        )
+        if removable:
+            detail += f" Hapus dulu {removable} klaim berstatus draft/revision."
+        if locked:
+            detail += (
+                f" {locked} klaim berstatus submitted/approved/rejected terkunci dan tidak bisa dihapus — "
+                f"gunakan Arsipkan sebagai gantinya."
+            )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=detail
         )
     
     db.delete(project)

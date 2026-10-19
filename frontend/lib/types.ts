@@ -58,6 +58,7 @@ export interface Project {
   created_by?: number;
   created_at: string;
   member_count: number;
+  claim_count?: number;
   total_claims: number;
   category_budgets?: CategoryBudgetUsage[];
   claim_window_start?: string | null;

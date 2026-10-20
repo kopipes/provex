@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import User, ProjectMember
+from app.models import User, ProjectMember, Claim
 from app.schemas import UserResponse, UserUpdate, UserStatusUpdate, UserRoleUpdate, UserCreate
 from app.auth import get_current_user, require_manager_or_admin, require_admin, get_password_hash
 from typing import List
@@ -222,6 +222,18 @@ def permanent_delete_user(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot delete your own account"
+        )
+    
+    # Guardrail: users with claim history cannot be hard deleted.
+    # Their claims are financial records and must be preserved.
+    claim_count = db.query(Claim).filter(Claim.user_id == user_id).count()
+    if claim_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"User masih memiliki {claim_count} klaim sehingga tidak dapat dihapus permanen. "
+                f"Gunakan nonaktifkan (soft delete) agar riwayat klaim tetap tersimpan."
+            )
         )
     
     db.delete(user)

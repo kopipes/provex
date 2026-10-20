@@ -18,7 +18,7 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     claims = relationship("Claim", back_populates="user", foreign_keys="Claim.user_id")
-    project_memberships = relationship("ProjectMember", back_populates="user", foreign_keys="ProjectMember.user_id")
+    project_memberships = relationship("ProjectMember", back_populates="user", foreign_keys="ProjectMember.user_id", cascade="all, delete-orphan")
 
 
 class Project(Base):
@@ -35,7 +35,7 @@ class Project(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     claims = relationship("Claim", back_populates="project")
-    members = relationship("ProjectMember", back_populates="project")
+    members = relationship("ProjectMember", back_populates="project", cascade="all, delete-orphan")
     category_budgets = relationship("ProjectCategoryBudget", back_populates="project", cascade="all, delete-orphan")
 
 

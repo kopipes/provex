@@ -6,7 +6,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { StatusBadge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { ReceiptViewer } from '@/components/ReceiptViewer';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, compressImage } from '@/lib/utils';
 import { claimsAPI, categoriesAPI } from '@/lib/api';
 import type { Claim, Category } from '@/lib/types';
 import { Search, X, Eye, Edit2, Trash2, Upload, Image } from 'lucide-react';
@@ -160,9 +160,10 @@ export default function HistoryPage() {
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.files?.[0];
+    if (raw) {
+      const file = await compressImage(raw);
       setEditImageFile(file);
       if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
         setEditImagePreview(URL.createObjectURL(file));

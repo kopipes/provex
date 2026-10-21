@@ -8,7 +8,7 @@ import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { uploadAPI, projectsAPI, claimsAPI, aiConfigAPI, categoriesAPI } from '@/lib/api';
 import type { Project, Category } from '@/lib/types';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, compressImage } from '@/lib/utils';
 import { Camera, Upload, Loader2, AlertCircle } from 'lucide-react';
 
 export default function NewClaimPage() {
@@ -212,11 +212,13 @@ export default function NewClaimPage() {
   const isPdf = (file: File) => file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
 
   const processFile = async (file: File) => {
-    setReceiptFile(file);
+    // Compress images in the browser before upload (PDFs pass through unchanged)
+    const prepared = await compressImage(file);
+    setReceiptFile(prepared);
     
     // Show preview — PDF uses object URL for iframe, images use base64
-    if (isPdf(file)) {
-      const url = URL.createObjectURL(file);
+    if (isPdf(prepared)) {
+      const url = URL.createObjectURL(prepared);
       setPdfObjectUrl(url);
       setReceiptPreview('pdf');
     } else {
@@ -224,7 +226,7 @@ export default function NewClaimPage() {
       reader.onloadend = () => {
         setReceiptPreview(reader.result as string);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(prepared);
     }
     
     // Upload file
@@ -232,13 +234,13 @@ export default function NewClaimPage() {
     setExtractingData(ocrEnabled);
     try {
       // Upload first
-      const uploadResponse = await uploadAPI.uploadReceipt(file);
+      const uploadResponse = await uploadAPI.uploadReceipt(prepared);
       setUploadedPath(uploadResponse.data.path);
       
       // Only extract data if OCR is enabled and file is an image (not PDF)
-      if (ocrEnabled && !isPdf(file)) {
+      if (ocrEnabled && !isPdf(prepared)) {
         // Convert to base64 for OCR
-        const base64 = await fileToBase64(file);
+        const base64 = await fileToBase64(prepared);
         
         // Try to extract data using AI
         try {

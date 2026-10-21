@@ -344,3 +344,59 @@ def get_dashboard_summary(
                 for c in recent_claims
             ]
         }
+
+
+@router.get("/attention")
+def get_attention_items(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Claims that need the user's attention on the dashboard.
+
+    - revision: always shown, because the user must act on it
+    - rejected: shown only until the user has seen the dashboard since review
+    """
+    seen = current_user.last_dashboard_seen_at
+
+    claims = db.query(Claim).filter(
+        Claim.user_id == current_user.id,
+        Claim.status.in_(["rejected", "revision"])
+    ).order_by(Claim.id.desc()).all()
+
+    items = []
+    for c in claims:
+        if c.status == "revision":
+            include = True
+        else:  # rejected
+            include = seen is None or (c.reviewed_at is not None and c.reviewed_at > seen)
+        if not include:
+            continue
+        project = db.query(Project).filter(Project.id == c.project_id).first()
+        items.append({
+            "id": c.id,
+            "merchant_name": c.merchant_name,
+            "amount": c.amount,
+            "status": c.status,
+            "category": c.category,
+            "notes": c.notes,
+            "project_name": project.name if project else None,
+            "reviewed_at": c.reviewed_at,
+        })
+
+    return {
+        "count": len(items),
+        "revision_count": len([i for i in items if i["status"] == "revision"]),
+        "rejected_count": len([i for i in items if i["status"] == "rejected"]),
+        "items": items,
+    }
+
+
+@router.post("/attention/seen")
+def mark_attention_seen(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Mark the dashboard as seen so rejected claims stop being flagged."""
+    current_user.last_dashboard_seen_at = datetime.utcnow()
+    db.commit()
+    return {"ok": True}

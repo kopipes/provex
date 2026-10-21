@@ -7,6 +7,30 @@ import os
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
+
+def apply_lightweight_migrations():
+    """Additive-only column migrations for existing databases.
+
+    create_all() does not alter existing tables, so new nullable columns
+    must be added explicitly. Safe to run on every startup.
+    """
+    db_path = os.environ.get('DATABASE_URL', 'sqlite:///./reimburseeasy.db').replace('sqlite:///', '')
+    if not os.path.exists(db_path):
+        return
+    import sqlite3
+    conn = sqlite3.connect(db_path)
+    try:
+        existing = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
+        if existing and 'last_dashboard_seen_at' not in existing:
+            conn.execute("ALTER TABLE users ADD COLUMN last_dashboard_seen_at DATETIME")
+            conn.commit()
+            print("Migration: added users.last_dashboard_seen_at")
+    finally:
+        conn.close()
+
+
+apply_lightweight_migrations()
+
 # Auto-seed database if empty (skip in Docker volume persistence)
 def check_and_seed_db():
     """Check if database needs seeding and run init_db.py"""

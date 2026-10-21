@@ -6,9 +6,9 @@ import { StatusBadge } from '@/components/Badge';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { analyticsAPI } from '@/lib/api';
 import { useEffect, useState } from 'react';
-import { FolderOpen, Search } from 'lucide-react';
+import { FolderOpen, Search, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
-import type { ClaimStatus, ProjectStatus } from '@/lib/types';
+import type { ClaimStatus, ProjectStatus, AttentionSummary } from '@/lib/types';
 
 interface ProjectSummary {
   id: number;
@@ -33,6 +33,8 @@ export default function DashboardPage() {
   const [recentClaims, setRecentClaims] = useState<RecentClaim[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [attention, setAttention] = useState<AttentionSummary | null>(null);
+  const [attentionDismissed, setAttentionDismissed] = useState(false);
 
   const fetchDashboard = async () => {
     setLoading(true);
@@ -50,8 +52,27 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchAttention = async () => {
+    try {
+      const res = await analyticsAPI.getAttention();
+      setAttention(res.data);
+    } catch (error) {
+      console.error('Failed to fetch attention items:', error);
+    }
+  };
+
+  const acknowledgeAttention = async () => {
+    setAttentionDismissed(true);
+    try {
+      await analyticsAPI.markAttentionSeen();
+    } catch (error) {
+      console.error('Failed to mark attention as seen:', error);
+    }
+  };
+
   useEffect(() => {
     fetchDashboard();
+    fetchAttention();
   }, []);
 
   // Filter projects and claims based on search query
@@ -79,6 +100,56 @@ export default function DashboardPage() {
               Selamat datang, {user?.name}
             </p>
           </div>
+
+          {/* Attention banner — rejected / revision claims */}
+          {attention && attention.count > 0 && !attentionDismissed && (
+            <div className="mb-4 sm:mb-6 border border-warning/40 bg-warning/10 rounded-radius-lg p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-text-primary text-sm">
+                    {attention.count} klaim perlu perhatian Anda
+                  </p>
+                  <p className="text-sm text-text-secondary mt-1">
+                    {attention.revision_count > 0 && `${attention.revision_count} minta revisi`}
+                    {attention.revision_count > 0 && attention.rejected_count > 0 && ', '}
+                    {attention.rejected_count > 0 && `${attention.rejected_count} ditolak`}
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    {attention.items.slice(0, 3).map((item) => (
+                      <div key={item.id} className="flex items-center justify-between gap-3 text-sm">
+                        <div className="min-w-0">
+                          <span className="font-medium text-text-primary">{item.merchant_name}</span>
+                          <span className="text-text-muted"> · {item.project_name || '-'}</span>
+                          {item.notes && (
+                            <p className="text-xs text-text-secondary truncate">Catatan: {item.notes}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <StatusBadge status={item.status} />
+                          <span className="text-text-secondary">{formatCurrency(item.amount)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Link
+                      href="/history"
+                      className="px-3 py-1.5 bg-accent text-white text-sm rounded-radius-md hover:bg-accent/90"
+                    >
+                      Lihat Riwayat
+                    </Link>
+                    <button
+                      onClick={acknowledgeAttention}
+                      className="px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary"
+                    >
+                      Tandai sudah dibaca
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Search Filter */}
           <div className="bg-bg-surface border border-border-default rounded-radius-lg p-3 sm:p-4 mb-4 sm:mb-6">

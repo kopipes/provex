@@ -163,6 +163,24 @@ export interface DashboardSummary {
   }[];
 }
 
+export interface AttentionItem {
+  id: number;
+  merchant_name: string;
+  amount: number;
+  status: ClaimStatus;
+  category: string;
+  notes?: string | null;
+  project_name?: string | null;
+  reviewed_at?: string | null;
+}
+
+export interface AttentionSummary {
+  count: number;
+  revision_count: number;
+  rejected_count: number;
+  items: AttentionItem[];
+}
+
 export interface UserDashboard extends DashboardSummary {
   total_claims: number;
   total_amount: number;

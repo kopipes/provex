@@ -2,7 +2,7 @@ import axios from 'axios';
 import type {
   User, Project, Claim, ProjectMember, Token, AIConfig,
   AnalyticsOverview, ProjectBreakdown, TopSubmitter,
-  DashboardSummary, AuditLog
+  DashboardSummary, AuditLog, AttentionSummary
 } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -130,6 +130,8 @@ export const analyticsAPI = {
   getAuditLogs: (params?: { limit?: number }) =>
     api.get<AuditLog[]>('/analytics/audit-logs', { params }),
   getDashboard: () => api.get<DashboardSummary>('/analytics/dashboard'),
+  getAttention: () => api.get<AttentionSummary>('/analytics/attention'),
+  markAttentionSeen: () => api.post('/analytics/attention/seen'),
   exportCSV: (params?: { period?: string; project_id?: string; status?: string; category?: string; start_date?: string; end_date?: string }) =>
     api.get('/analytics/export/csv', { params, responseType: 'blob' }),
 };

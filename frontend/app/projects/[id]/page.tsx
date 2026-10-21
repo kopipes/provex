@@ -9,9 +9,9 @@ import { StatusBadge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { ReceiptViewer } from '@/components/ReceiptViewer';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { projectsAPI, claimsAPI } from '@/lib/api';
-import type { Project, Claim } from '@/lib/types';
-import { Eye, X } from 'lucide-react';
+import { projectsAPI, claimsAPI, usersAPI } from '@/lib/api';
+import type { Project, Claim, ProjectMember, User } from '@/lib/types';
+import { Eye, X, UserPlus, Trash2 } from 'lucide-react';
 
 export default function ProjectDetailPage() {
   const router = useRouter();
@@ -25,6 +25,14 @@ export default function ProjectDetailPage() {
   const [error, setError] = useState('');
   const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [members, setMembers] = useState<ProjectMember[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [memberSearch, setMemberSearch] = useState('');
+  const [memberBusy, setMemberBusy] = useState(false);
+  const [memberError, setMemberError] = useState('');
+
+  const canManageMembers = user?.role === 'admin' || user?.role === 'manager';
 
   useEffect(() => {
     loadData();
@@ -33,18 +41,86 @@ export default function ProjectDetailPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [projectRes, claimsRes] = await Promise.all([
+      const [projectRes, claimsRes, membersRes] = await Promise.all([
         projectsAPI.get(projectId),
-        claimsAPI.list({ project_id: projectId })
+        claimsAPI.list({ project_id: projectId }),
+        projectsAPI.getMembers(projectId),
       ]);
       setProject(projectRes.data);
       setClaims(claimsRes.data);
+      setMembers(membersRes.data);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load project');
     } finally {
       setLoading(false);
     }
   };
+
+  const openMemberModal = async () => {
+    setShowMemberModal(true);
+    setMemberError('');
+    setMemberSearch('');
+    if (allUsers.length === 0) {
+      try {
+        const res = await usersAPI.list();
+        setAllUsers(res.data);
+      } catch {
+        setMemberError('Gagal memuat daftar pengguna');
+      }
+    }
+  };
+
+  const handleAddMember = async (userId: number) => {
+    setMemberBusy(true);
+    setMemberError('');
+    try {
+      await projectsAPI.addMember(projectId, userId);
+      const [membersRes, projectRes] = await Promise.all([
+        projectsAPI.getMembers(projectId),
+        projectsAPI.get(projectId),
+      ]);
+      setMembers(membersRes.data);
+      setProject(projectRes.data);
+      setMemberSearch('');
+    } catch (err: any) {
+      setMemberError(err.response?.data?.detail || 'Gagal menambah anggota');
+    } finally {
+      setMemberBusy(false);
+    }
+  };
+
+  const handleRemoveMember = async (userId: number, name: string) => {
+    if (!confirm(`Hapus ${name} dari anggota project ini?`)) return;
+    setMemberBusy(true);
+    setMemberError('');
+    try {
+      await projectsAPI.removeMember(projectId, userId);
+      const [membersRes, projectRes] = await Promise.all([
+        projectsAPI.getMembers(projectId),
+        projectsAPI.get(projectId),
+      ]);
+      setMembers(membersRes.data);
+      setProject(projectRes.data);
+    } catch (err: any) {
+      setMemberError(err.response?.data?.detail || 'Gagal menghapus anggota');
+    } finally {
+      setMemberBusy(false);
+    }
+  };
+
+  // Users eligible to be added (not already members), filtered by search
+  const memberIds = new Set(members.map((m) => m.user_id));
+  const availableUsers = allUsers
+    .filter((u) => !memberIds.has(u.id))
+    .filter((u) => {
+      const q = memberSearch.toLowerCase();
+      return (
+        !q ||
+        u.name.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        (u.department || '').toLowerCase().includes(q)
+      );
+    });
 
   // Distinct categories present in this project's claims
   const claimCategories = Array.from(new Set(claims.map((c) => c.category).filter(Boolean))).sort();
@@ -147,6 +223,61 @@ export default function ProjectDetailPage() {
             </div>
           </div>
 
+          {/* Members */}
+          <div className="mb-8">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+              <h2 className="text-lg font-semibold text-text-primary">
+                Anggota Project
+                <span className="text-text-muted font-normal text-sm ml-2">({members.length} orang)</span>
+              </h2>
+              {canManageMembers && (
+                <Button size="sm" onClick={openMemberModal}>
+                  <span className="inline-flex items-center gap-1.5">
+                    <UserPlus className="w-4 h-4" />
+                    Tambah Anggota
+                  </span>
+                </Button>
+              )}
+            </div>
+
+            <div className="bg-bg-surface border border-border-default rounded-radius-lg overflow-hidden">
+              {members.length === 0 ? (
+                <div className="p-6 text-center">
+                  <p className="text-text-secondary text-sm">Belum ada anggota di project ini</p>
+                  {!canManageMembers && (
+                    <p className="text-text-muted text-xs mt-1">
+                      Hubungi admin atau manager untuk menambahkan Anda sebagai anggota.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="divide-y divide-border-default">
+                  {members.map((m) => (
+                    <div key={m.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                      <div className="min-w-0">
+                        <p className="font-medium text-text-primary text-sm truncate">{m.user_name}</p>
+                        <p className="text-xs text-text-secondary truncate">
+                          {m.user_email}
+                          {m.department && <> · {m.department}</>}
+                        </p>
+                      </div>
+                      {canManageMembers && (
+                        <button
+                          onClick={() => handleRemoveMember(m.user_id, m.user_name)}
+                          disabled={memberBusy}
+                          className="p-2 text-danger hover:bg-danger/10 rounded-radius-md disabled:opacity-50"
+                          title="Hapus anggota"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Claims List */}
           <div className="mb-8">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
@@ -243,6 +374,71 @@ export default function ProjectDetailPage() {
           </div>
         </div>
       </main>
+
+      {/* Add Member Modal */}
+      {showMemberModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-bg-surface rounded-radius-lg w-full max-w-[480px] max-h-[85vh] flex flex-col">
+            <div className="border-b border-border-default p-4 flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-text-primary">Tambah Anggota</h2>
+              <button
+                onClick={() => setShowMemberModal(false)}
+                className="text-text-muted hover:text-text-primary"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 border-b border-border-default">
+              <input
+                type="text"
+                placeholder="Cari nama, email, atau departemen..."
+                value={memberSearch}
+                onChange={(e) => setMemberSearch(e.target.value)}
+                className="w-full px-3 py-2 bg-bg-muted border border-border-default rounded-radius-md text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
+              />
+            </div>
+
+            {memberError && (
+              <p className="px-4 pt-3 text-danger text-sm">{memberError}</p>
+            )}
+
+            <div className="flex-1 overflow-y-auto divide-y divide-border-default">
+              {availableUsers.length === 0 ? (
+                <p className="p-6 text-center text-text-secondary text-sm">
+                  {memberSearch ? 'Tidak ada pengguna yang cocok' : 'Semua pengguna sudah menjadi anggota'}
+                </p>
+              ) : (
+                availableUsers.map((u) => (
+                  <div key={u.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-text-primary text-sm truncate">{u.name}</p>
+                      <p className="text-xs text-text-secondary truncate">
+                        {u.email}
+                        {u.department && <> · {u.department}</>}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => handleAddMember(u.id)}
+                      disabled={memberBusy}
+                    >
+                      Tambah
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="border-t border-border-default p-4 flex justify-end">
+              <Button variant="secondary" onClick={() => setShowMemberModal(false)}>
+                Selesai
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Claim Detail Modal */}
       {selectedClaim && (

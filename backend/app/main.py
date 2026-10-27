@@ -1,8 +1,15 @@
+import os
+
+# Load .env before importing app modules: several of them read environment
+# variables at import time (e.g. auth.SECRET_KEY, database.DATABASE_URL).
+# Without this, those modules silently fall back to insecure defaults.
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
 from app.routers import auth, users, projects, claims, analytics, ai_config, upload, database, departments, categories
-import os
 
 # Create database tables
 Base.metadata.create_all(bind=engine)

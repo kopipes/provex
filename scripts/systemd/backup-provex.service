@@ -1,0 +1,13 @@
+[Unit]
+Description=Backup Provex SQLite + receipts to R2 (one-shot)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/backup-provex-to-r2.sh /etc/backup-provex.env
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target

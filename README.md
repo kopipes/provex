@@ -184,6 +184,8 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 - [SPEC.md](./SPEC.md) - Full specification
 - [docs/](./docs/) - Detailed documentation
+- [docs/RECOVERY.md](./docs/RECOVERY.md) - **Disaster recovery runbook** (VPS loss, DB restore from R2)
+- [scripts/](./scripts/) - Backup & restore automation
 - [AGENTS.md](./AGENTS.md) - AI agent instructions
 
 ## API Documentation

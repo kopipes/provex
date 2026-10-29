@@ -29,6 +29,7 @@ Tanpa item ini pemulihan tidak bisa sempurna. Simpan di password manager.
 | `SECRET_KEY` (JWT) | Tanpa ini user harus login ulang (boleh diganti baru, hanya memaksa re-login). |
 | `ENCRYPTION_KEY` (Fernet) | **WAJIB sama persis.** Kalau berbeda, API key AI di database tidak bisa didekripsi. Tidak bisa diregenerasi. |
 | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY`, `R2_SECRET_KEY` | Untuk mengunduh backup. |
+| `NOTIV_API_KEY` (integrasi "Provex") | Mengirim kode reset password lewat Notiv. Kalau hilang, buat integrasi baru di Notiv (sekali) dan simpan key `nv_...` di `.env`. |
 | Kredensial admin aplikasi | Untuk verifikasi setelah restore. |
 | Akses SSH ke VPS (`~/.ssh/id_ed25519`) | Untuk deployment. |
 
@@ -61,6 +62,9 @@ cat > /var/www/provex/backend/.env <<'EOF'
 SECRET_KEY=<SECRET_KEY_ANDA>
 ENCRYPTION_KEY=<ENCRYPTION_KEY_ANDA>
 DATABASE_URL=sqlite:///./reimburseeasy.db
+NOTIV_API_KEY=<NOTIV_API_KEY_ANDA>
+NOTIV_URL=https://notiv.provaliantgroup.com
+APP_BASE_URL=https://provex.provaliantgroup.com
 EOF
 chmod 600 /var/www/provex/backend/.env
 ```

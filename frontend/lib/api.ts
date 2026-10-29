@@ -32,6 +32,10 @@ export const authAPI = {
   register: (data: { name: string; email: string; password: string; department?: string }) =>
     api.post<User>('/auth/register', data),
   getMe: () => api.get<User>('/auth/me'),
+  forgotPassword: (email: string) =>
+    api.post<{ message: string; channel_enabled: boolean }>('/auth/forgot-password', { email }),
+  resetPassword: (token: string, new_password: string) =>
+    api.post<{ message: string }>('/auth/reset-password', { token, new_password }),
 };
 
 // Users API

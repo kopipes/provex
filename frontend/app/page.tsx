@@ -65,6 +65,12 @@ export default function LoginPage() {
             required
           />
 
+          <div className="text-right">
+            <a href="/forgot-password" className="text-sm text-accent hover:underline">
+              Lupa password?
+            </a>
+          </div>
+
           {successMessage && (
             <p className="text-sm text-success text-center bg-success/10 py-2 rounded">{successMessage}</p>
           )}

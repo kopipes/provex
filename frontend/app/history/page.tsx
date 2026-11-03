@@ -201,7 +201,7 @@ export default function HistoryPage() {
     <div className="flex min-h-screen bg-bg-base">
       <Sidebar />
       <main className="flex-1 p-4 md:p-8 md:ml-[240px]">
-        <div className="max-w-[1100px] mx-auto">
+        <div className="w-full">
           <div className="mb-8 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
             <div>
               <h1 className="text-[24px] font-display font-bold text-text-primary">Riwayat Klaim</h1>

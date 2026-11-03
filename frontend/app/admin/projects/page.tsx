@@ -193,7 +193,7 @@ export default function AdminProjectsPage() {
     <div className="flex min-h-screen bg-bg-base">
       <Sidebar />
       <main className="flex-1 p-4 md:p-8 md:ml-[240px]">
-        <div className="max-w-[1200px] mx-auto">
+        <div className="w-full">
           <div className="mb-6 md:mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
               <h1 className="text-xl md:text-[24px] font-display font-bold text-text-primary">

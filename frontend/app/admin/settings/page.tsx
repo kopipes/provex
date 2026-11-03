@@ -275,7 +275,7 @@ export default function SettingsPage() {
   return (
     <div className="flex min-h-screen bg-bg-base">
       <Sidebar />
-      <main className="flex-1 p-4 sm:p-6 md:p-8 md:ml-[240px]">
+      <main className="w-full max-w-full min-w-0 flex-1 p-4 sm:p-6 md:p-8 md:ml-[240px]">
         <div className="max-w-[900px] mx-auto">
           <div className="mb-4 sm:mb-6 md:mb-8">
             <h1 className="text-xl sm:text-2xl md:text-[24px] font-display font-bold text-text-primary">Pengaturan</h1>

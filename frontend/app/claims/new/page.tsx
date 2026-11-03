@@ -335,7 +335,7 @@ export default function NewClaimPage() {
     return (
       <div className="flex min-h-screen bg-bg-base">
         <Sidebar />
-        <main className="flex-1 p-4 md:p-8 md:ml-[240px]">
+        <main className="w-full max-w-full min-w-0 flex-1 p-4 md:p-8 md:ml-[240px]">
           <div className="max-w-lg mx-auto">
             <div className="mb-6 md:mb-8">
               <h1 className="text-xl md:text-2xl font-display font-bold text-text-primary">
@@ -421,7 +421,7 @@ export default function NewClaimPage() {
   return (
     <div className="flex min-h-screen bg-bg-base">
       <Sidebar />
-      <main className="flex-1 p-4 md:p-8 md:ml-[240px]">
+      <main className="w-full max-w-full min-w-0 flex-1 p-4 md:p-8 md:ml-[240px]">
         <div className="max-w-[700px] mx-auto">
           {/* Header */}
           <div className="mb-6 md:mb-8">

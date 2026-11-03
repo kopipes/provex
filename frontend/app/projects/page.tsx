@@ -45,7 +45,7 @@ export default function ProjectsPage() {
   return (
     <div className="flex min-h-screen bg-bg-base">
       <Sidebar />
-      <main className="flex-1 p-8 md:ml-[240px]">
+      <main className="w-full max-w-full min-w-0 flex-1 p-8 md:ml-[240px]">
         <div className="w-full">
           {/* Header */}
           <div className="mb-8 flex justify-between items-center">

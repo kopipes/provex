@@ -5,6 +5,15 @@ __pycache__/
 venv/
 .env
 *.db
+# Database dumps created by the deploy/backup procedures.
+# `*.db` does not match names ending in a timestamp, so list the variants too.
+*.db.pre-*
+*.db.backup.*
+*.sqlite
+*.sqlite3
+
+# Local backups of DB dumps and receipt files — may contain credentials and user data
+backups/
 
 # Node
 node_modules/

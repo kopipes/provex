@@ -126,6 +126,7 @@ class CategoryBudgetUsage(BaseModel):
 
 
 class ProjectBase(BaseModel):
+    project_number: Optional[str] = Field(None, max_length=50)
     name: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
     start_date: date
@@ -139,6 +140,7 @@ class ProjectCreate(ProjectBase):
 
 
 class ProjectUpdate(BaseModel):
+    project_number: Optional[str] = Field(None, max_length=50)
     name: Optional[str] = None
     description: Optional[str] = None
     start_date: Optional[date] = None

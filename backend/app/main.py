@@ -32,6 +32,25 @@ def apply_lightweight_migrations():
             conn.execute("ALTER TABLE users ADD COLUMN last_dashboard_seen_at DATETIME")
             conn.commit()
             print("Migration: added users.last_dashboard_seen_at")
+
+        project_cols = {row[1] for row in conn.execute("PRAGMA table_info(projects)")}
+        if project_cols and 'project_number' not in project_cols:
+            # SQLite cannot add a UNIQUE constraint via ALTER TABLE, so the
+            # column is added first and uniqueness is enforced with an index.
+            # Multiple NULL values remain allowed (projects without a number).
+            conn.execute("ALTER TABLE projects ADD COLUMN project_number VARCHAR(50)")
+            conn.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_projects_project_number "
+                "ON projects(project_number)"
+            )
+            conn.commit()
+            print("Migration: added projects.project_number")
+        elif project_cols:
+            conn.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_projects_project_number "
+                "ON projects(project_number)"
+            )
+            conn.commit()
     finally:
         conn.close()
 

@@ -62,6 +62,7 @@ export const projectsAPI = {
     api.get<Project[]>('/projects', { params }),
   get: (id: number) => api.get<Project>(`/projects/${id}`),
   create: (data: {
+    project_number?: string | null;
     name: string;
     description?: string;
     start_date: string;
@@ -69,6 +70,7 @@ export const projectsAPI = {
     category_budgets?: { category: string; budget_amount: number }[];
   }) => api.post<Project>('/projects', data),
   update: (id: number, data: {
+    project_number?: string | null;
     name?: string;
     description?: string;
     start_date?: string;

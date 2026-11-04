@@ -50,6 +50,7 @@ export interface BudgetWarning {
 
 export interface Project {
   id: number;
+  project_number?: string | null;
   name: string;
   description?: string;
   start_date: string;

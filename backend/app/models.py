@@ -26,6 +26,7 @@ class Project(Base):
     __tablename__ = "projects"
 
     id = Column(Integer, primary_key=True, index=True)
+    project_number = Column(String(50), nullable=True, unique=True, index=True)
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     start_date = Column(Date, nullable=False)

@@ -179,6 +179,11 @@ export default function ProjectDetailPage() {
             </Link>
             <div className="flex justify-between items-start">
               <div>
+                {project.project_number && (
+                  <span className="inline-block text-sm font-mono font-medium px-2.5 py-1 rounded bg-accent/10 text-accent mb-2">
+                    {project.project_number}
+                  </span>
+                )}
                 <h1 className="text-[24px] font-display font-bold text-text-primary">
                   {project.name}
                 </h1>

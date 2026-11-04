@@ -98,6 +98,11 @@ export default function ProjectsPage() {
                 >
                   <div className="flex justify-between items-start">
                     <div>
+                      {project.project_number && (
+                        <span className="inline-block text-xs font-mono font-medium px-2 py-0.5 rounded bg-accent/10 text-accent mb-1">
+                          {project.project_number}
+                        </span>
+                      )}
                       <h3 className="text-lg font-medium text-text-primary">
                         {project.name}
                       </h3>

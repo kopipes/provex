@@ -22,6 +22,7 @@ export default function AdminProjectsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [formData, setFormData] = useState({
+    project_number: '',
     name: '',
     description: '',
     start_date: '',
@@ -70,6 +71,7 @@ export default function AdminProjectsPage() {
         projects.filter(
           (p) =>
             p.name.toLowerCase().includes(query) ||
+            p.project_number?.toLowerCase().includes(query) ||
             p.description?.toLowerCase().includes(query)
         )
       );
@@ -95,6 +97,7 @@ export default function AdminProjectsPage() {
     setSubmitting(true);
     try {
       const data: any = {
+        project_number: formData.project_number.trim() || null,
         name: formData.name,
         description: formData.description || undefined,
         start_date: formData.start_date,
@@ -126,6 +129,7 @@ export default function AdminProjectsPage() {
   const handleAddNew = () => {
     setEditingProject(null);
     setFormData({
+      project_number: '',
       name: '',
       description: '',
       start_date: '',
@@ -140,6 +144,7 @@ export default function AdminProjectsPage() {
   const handleEdit = (project: Project) => {
     setEditingProject(project);
     setFormData({
+      project_number: project.project_number || '',
       name: project.name,
       description: project.description || '',
       start_date: project.start_date,
@@ -180,7 +185,7 @@ export default function AdminProjectsPage() {
   const resetForm = () => {
     setShowForm(false);
     setEditingProject(null);
-    setFormData({ name: '', description: '', start_date: '', end_date: '', status: 'active' });
+    setFormData({ project_number: '', name: '', description: '', start_date: '', end_date: '', status: 'active' });
     setCategoryBudgets({});
     setErrors({});
   };
@@ -242,6 +247,11 @@ export default function AdminProjectsPage() {
                 <div key={project.id} className="bg-bg-surface border border-border-default rounded-radius-lg p-4 md:p-6">
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-3">
                     <div className="flex-1 min-w-0">
+                      {project.project_number && (
+                        <span className="inline-block text-xs font-mono font-medium px-2 py-0.5 rounded bg-accent/10 text-accent mb-1">
+                          {project.project_number}
+                        </span>
+                      )}
                       <h3 className="text-base md:text-lg font-medium text-text-primary truncate">
                         {project.name}
                       </h3>
@@ -305,6 +315,20 @@ export default function AdminProjectsPage() {
               {editingProject ? 'Edit Project' : 'Project Baru'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">No Project</label>
+                <input
+                  type="text"
+                  value={formData.project_number}
+                  onChange={(e) => updateFormData('project_number', e.target.value)}
+                  placeholder="mis. E26166 (opsional, harus unik)"
+                  maxLength={50}
+                  className="w-full px-4 py-2.5 bg-bg-surface border border-border-default rounded-radius-md"
+                />
+                <p className="text-xs text-text-muted mt-1">
+                  Nomor unik project. Boleh dikosongkan.
+                </p>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-text-primary mb-2">Nama Project *</label>
                 <input

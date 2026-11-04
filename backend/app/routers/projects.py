@@ -73,6 +73,41 @@ def replace_category_budgets(project_id: int, items, db: Session):
         ))
 
 
+def normalize_project_number(value: Optional[str]) -> Optional[str]:
+    """Trim a project number and treat blank input as 'not set'."""
+    if value is None:
+        return None
+    cleaned = value.strip()
+    return cleaned or None
+
+
+def ensure_project_number_available(
+    db: Session, project_number: Optional[str], exclude_project_id: Optional[int] = None
+):
+    """Reject duplicate project numbers with a clear message.
+
+    Comparison is case-insensitive so 'E26166' and 'e26166' cannot coexist.
+    """
+    if not project_number:
+        return
+
+    query = db.query(Project).filter(
+        func.lower(Project.project_number) == project_number.lower()
+    )
+    if exclude_project_id is not None:
+        query = query.filter(Project.id != exclude_project_id)
+
+    existing = query.first()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"No project '{project_number}' sudah dipakai oleh project "
+                f"'{existing.name}'. Gunakan nomor lain."
+            )
+        )
+
+
 def project_to_response(project: Project, db: Session) -> dict:
     """Convert Project model to response dict with computed fields"""
     member_count = db.query(ProjectMember).filter(ProjectMember.project_id == project.id).count()
@@ -83,6 +118,7 @@ def project_to_response(project: Project, db: Session) -> dict:
     
     return {
         "id": project.id,
+        "project_number": project.project_number,
         "name": project.name,
         "description": project.description,
         "start_date": project.start_date,
@@ -138,7 +174,11 @@ def create_project(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
 ):
+    project_number = normalize_project_number(project_data.project_number)
+    ensure_project_number_available(db, project_number)
+
     new_project = Project(
+        project_number=project_number,
         name=project_data.name,
         description=project_data.description,
         start_date=project_data.start_date,
@@ -202,6 +242,11 @@ def update_project(
     
     if project_data.name is not None:
         project.name = project_data.name
+    # An empty string clears the number; omitted leaves it unchanged
+    if project_data.project_number is not None:
+        new_number = normalize_project_number(project_data.project_number)
+        ensure_project_number_available(db, new_number, exclude_project_id=project.id)
+        project.project_number = new_number
     if project_data.description is not None:
         project.description = project_data.description
     if project_data.start_date is not None:

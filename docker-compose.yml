@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     ports:
-      - "8010:8000"
+      - "127.0.0.1:8010:8000"
     volumes:
       - ./backend/uploads:/app/uploads
       - ./backend/.env:/app/.env
@@ -14,11 +14,12 @@ services:
       - provex-network
 
   frontend:
+    image: provex-frontend:node22.23.4-20261027
     build:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "8090:3000"
+      - "127.0.0.1:8090:3000"
     environment:
       - NEXT_PUBLIC_API_URL=/api
     restart: unless-stopped

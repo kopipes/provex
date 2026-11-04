@@ -9,7 +9,7 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.routers import auth, users, projects, claims, analytics, ai_config, upload, database, departments, categories
+from app.routers import auth, users, projects, claims, analytics, ai_config, upload, database, departments, categories, integration
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -114,6 +114,7 @@ app.include_router(upload.router)
 app.include_router(database.router)
 app.include_router(departments.router)
 app.include_router(categories.router)
+app.include_router(integration.router)
 
 
 @app.get("/")

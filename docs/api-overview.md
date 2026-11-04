@@ -225,3 +225,6 @@ file: <image file>
 ## API Versioning
 
 Currently no versioning (v1 implied). Future versions may use `/api/v1/` prefix.
+## Integration
+
+`GET /integration/export` (public path `/api/integration/export`) is the read-only export for the 2ndBrain warehouse. It uses the `INTERNAL_API_KEY` shared key instead of a user token, sent as `Authorization: Bearer <key>` or `x-internal-api-key`. It returns only projects, category budgets and claim totals fields, with no users, merchants, receipts or notes. It returns 503 when the key is not configured.
